@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { BarChart2, Menu, Upload, Activity } from 'lucide-react';
+import { BarChart2, Menu, Upload, Activity, Settings } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 // 新しい型定義をインポート
@@ -28,6 +28,7 @@ import { ChartArea } from './components/ChartArea';
 import { IconBar } from './components/IconBar';
 import { GlobalModeTab } from './components/GlobalModeTab';
 import { DataSourceManager } from './components/DataSourceManager';
+import { SettingsModal } from './components/SettingsModal';
 import { transformDataForChart, transformDataForHistoricalChart, transformDataForHistoricalBrandImage, transformDataForHistoricalBrandsComparison, transformDataForHistoricalBrandImageBrandsComparison } from './utils/dataTransforms';
 
 // 新しいフックをインポート
@@ -193,6 +194,7 @@ const App: React.FC = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // refs
   const chartRef = useRef<HTMLDivElement>(null);
@@ -655,6 +657,7 @@ const App: React.FC = () => {
           handleCopyImage={(target) => copyImage(target === 'chart' ? chartRef.current : combinedRef.current, target === 'chart')}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
+          onOpenSettings={() => setShowSettingsModal(true)}
         />
       </div>
 
@@ -817,9 +820,19 @@ const App: React.FC = () => {
           <BarChart2 className="w-6 h-6 text-indigo-600" />
           <span className="font-bold text-indigo-900">BFD Analytics</span>
         </div>
-        <button onClick={() => setShowMobileMenu(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-          <Menu className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowSettingsModal(true)} 
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            title="設定"
+            aria-label="設定"
+          >
+            <Settings className="w-6 h-6" />
+          </button>
+          <button onClick={() => setShowMobileMenu(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -898,10 +911,17 @@ const App: React.FC = () => {
               data={data}
               selectedItem={selectedItem}
               yAxisMax={chartConfig.yAxisMax}
+              isAnonymized={chartConfig.isAnonymized}
             />
           )}
         </div>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </div>
   );
 };

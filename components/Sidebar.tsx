@@ -212,9 +212,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             if (globalMode === 'historical') {
                 try {
                     const sampleFiles = [
-                        'sample_202506.xlsx',
+                        'sample_202304.xlsx',
                         'sample_202406.xlsx',
-                        'sample_202304.xlsx'
+                        'sample_202506.xlsx'
                     ];
                     
                     // 注意: 既存のデータソースをクリアせず、追加読み込み

@@ -7,7 +7,8 @@ import {
     Camera,
     Image as ImageIcon,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    Settings
 } from 'lucide-react';
 import { ChartType } from '../types';
 
@@ -17,6 +18,7 @@ interface IconBarProps {
     handleCopyImage: (target: 'chart' | 'combined') => void;
     sidebarCollapsed: boolean;
     setSidebarCollapsed: (collapsed: boolean) => void;
+    onOpenSettings: () => void;
 }
 
 export const IconBar: React.FC<IconBarProps> = ({
@@ -24,7 +26,8 @@ export const IconBar: React.FC<IconBarProps> = ({
     setChartType,
     handleCopyImage,
     sidebarCollapsed,
-    setSidebarCollapsed
+    setSidebarCollapsed,
+    onOpenSettings
 }) => {
     const chartTypes: Array<{ type: ChartType; icon: React.ReactNode; label: string }> = [
         { type: 'bar', icon: <BarChart2 className="w-5 h-5" />, label: '集合縦棒' },
@@ -79,7 +82,7 @@ export const IconBar: React.FC<IconBarProps> = ({
             <div className="w-full border-t border-gray-300 mb-2" />
 
             {/* Screenshot Icons */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mb-4">
                 {screenshotButtons.map(({ target, icon, label }) => (
                     <button
                         key={target}
@@ -95,6 +98,21 @@ export const IconBar: React.FC<IconBarProps> = ({
                     </button>
                 ))}
             </div>
+
+            <div className="w-full border-t border-gray-300 mb-2 mt-auto" />
+
+            {/* Settings Button - Bottom */}
+            <button
+                onClick={onOpenSettings}
+                className="p-3 rounded-lg hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-all group relative"
+                title="設定"
+            >
+                <Settings className="w-5 h-5" />
+                {/* Tooltip */}
+                <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    設定
+                </span>
+            </button>
         </div>
     );
 };

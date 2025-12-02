@@ -103,15 +103,31 @@ export const useAuth = () => {
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 特殊キー（Ctrl, Alt, Shift, Meta, Escape, Enter, Tab等）は無視
+      // 修飾キーが押されている場合は無視
+      if (e.ctrlKey || e.altKey || e.metaKey) {
+        return;
+      }
+
+      // Backspaceキーの処理
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        setInputBuffer((prev) => prev.slice(0, -1));
+        return;
+      }
+
+      // Enterキーの処理：バッファに"branding"が含まれている場合のみ認証
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (inputBuffer.toLowerCase().includes(AUTH_PASSWORD)) {
+          authenticate();
+        }
+        return;
+      }
+
+      // その他の特殊キー（Escape, Tab, Delete, 矢印キー等）は無視
       if (
-        e.ctrlKey ||
-        e.altKey ||
-        e.metaKey ||
         e.key === 'Escape' ||
-        e.key === 'Enter' ||
         e.key === 'Tab' ||
-        e.key === 'Backspace' ||
         e.key === 'Delete' ||
         e.key.length > 1 // 特殊キー（ArrowUp, F1等）
       ) {
@@ -121,14 +137,9 @@ export const useAuth = () => {
       // 通常の文字キーのみを処理
       const newBuffer = (inputBuffer + e.key).toLowerCase();
       
-      // パスワードが含まれているかチェック
-      if (newBuffer.includes(AUTH_PASSWORD)) {
-        authenticate();
-      } else {
-        // バッファを更新（最大20文字まで保持）
-        const trimmedBuffer = newBuffer.slice(-20);
-        setInputBuffer(trimmedBuffer);
-      }
+      // バッファを更新（最大20文字まで保持）
+      const trimmedBuffer = newBuffer.slice(-20);
+      setInputBuffer(trimmedBuffer);
     };
 
     window.addEventListener('keydown', handleKeyDown);

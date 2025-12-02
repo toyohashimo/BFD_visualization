@@ -21,6 +21,9 @@ import {
     ANALYSIS_MODE_CONFIGS, 
     HISTORICAL_ANALYSIS_MODE_CONFIGS 
 } from '../constants/analysisConfigs';
+import { AISummaryButton } from './AISummaryButton';
+import { AISummaryCard } from './AISummaryCard';
+import { useAISummary, AISummaryContext, AISummaryMetadata } from '../src/hooks/useAISummary';
 
 interface ChartAreaProps {
     globalMode: GlobalMode;
@@ -43,6 +46,7 @@ interface ChartAreaProps {
     data: SheetData;
     selectedItem: keyof FunnelMetrics | keyof TimelineMetrics;
     yAxisMax: number | '';
+    isAnonymized: boolean; // DEMOモード判定用
 }
 
 export const ChartArea: React.FC<ChartAreaProps> = ({
@@ -65,7 +69,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
     chartRef,
     data,
     selectedItem,
-    yAxisMax
+    yAxisMax,
+    isAnonymized
 }) => {
     // データがない場合は早期リターン
     if (!chartData || chartData.length === 0) {
@@ -311,10 +316,62 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         return { chartLabel: '', chartValue: '' };
     }, [chartFilters]);
 
+    // AIサマリー用のメタデータを準備
+    const aiMetadata: AISummaryMetadata = useMemo(() => {
+        const config = currentModeConfigs[analysisMode];
+        const itemSet = config?.axes.items?.itemSet || 'funnel';
+        const itemLabels = getItemLabelsForSet(itemSet);
+        
+        // ブランド名マップを作成
+        const brandNames: Record<string, string> = {};
+        [...selectedBrands, targetBrand].forEach(brand => {
+            if (brand) {
+                brandNames[brand] = getBrandName(brand);
+            }
+        });
+
+        return {
+            itemLabels,
+            brandNames,
+        };
+    }, [analysisMode, selectedBrands, targetBrand, getBrandName, currentModeConfigs]);
+
+    // AIサマリー用のコンテキスト
+    const aiContext: AISummaryContext = useMemo(() => ({
+        globalMode,
+        analysisMode,
+        chartType,
+        sheet,
+        targetBrand,
+        selectedBrands,
+        selectedSegments,
+        selectedItem: selectedItem || '',
+        dataSources: globalMode === 'historical' ? dataSources.map(ds => ({
+            name: ds.name,
+            isActive: ds.isActive,
+        })) : undefined,
+        isAnonymized, // DEMOモード判定を追加
+    }), [globalMode, analysisMode, chartType, sheet, targetBrand, selectedBrands, selectedSegments, selectedItem, dataSources, isAnonymized]);
+
+    // AIサマリーフック
+    const { summary, isLoading, error, generateSummary, clearSummary } = useAISummary(
+        chartData,
+        aiContext,
+        aiMetadata
+    );
+
     return (
         <div ref={combinedRef} className="w-full px-0 md:px-4 space-y-6 bg-white">
             {/* Chart Section */}
-            <div ref={chartRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div ref={chartRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 relative">
+                {/* AIサマリーボタン（右上に配置） */}
+                {chartData.length > 0 && (
+                    <AISummaryButton
+                        onClick={generateSummary}
+                        isLoading={isLoading}
+                        disabled={chartData.length === 0}
+                    />
+                )}
                 <div className="mb-6 flex items-center justify-between px-2">
                     <div className="flex items-center gap-4 flex-wrap">
                         {chartFilters.map((filter, index) => (
@@ -325,7 +382,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                         ))}
                     </div>
                 </div>
-                <div className="h-[400px] w-full relative bg-white" style={{ height: `${chartHeight}px` }}>
+                <div className="h-[400px] w-full bg-white" style={{ height: `${chartHeight}px` }}>
                     {chartData.length === 0 ? (
                         <div className="flex items-center justify-center h-full text-gray-400">
                             データが選択されていません
@@ -510,6 +567,16 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                     <div className={`h-1 w-16 rounded-full ${isResizing ? 'bg-indigo-500' : 'bg-gray-400 group-hover:bg-gray-500'}`} />
                 </div>
             </div>
+
+            {/* AIサマリーカード */}
+            {(summary || isLoading || error) && (
+                <AISummaryCard
+                    summary={summary}
+                    isLoading={isLoading}
+                    error={error}
+                    onClear={clearSummary}
+                />
+            )}
 
             {/* Data Table Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
