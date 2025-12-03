@@ -5,8 +5,8 @@ import { AnalysisModeConfig } from '../types';
  * 設定駆動型アプローチによる分析モード定義
  */
 export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
-    'segment_x_multi_brand': {
-        id: 'segment_x_multi_brand',
+    'funnel_segment_brands': {
+        id: 'funnel_segment_brands',
         name: 'ファネル分析①（セグメント: X=ファネル①×ブランド）',
         description: '単一セグメントにおける複数ブランドのファネル指標を比較',
         axes: {
@@ -36,8 +36,8 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
         defaultChartType: 'bar'
     },
 
-    'brand_x_multi_segment': {
-        id: 'brand_x_multi_segment',
+    'funnel_brand_segments': {
+        id: 'funnel_brand_segments',
         name: 'ファネル分析①（ブランド: X=ファネル①×セグメント）',
         description: '単一ブランドにおける複数セグメントのファネル指標を比較',
         axes: {
@@ -67,8 +67,8 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
         defaultChartType: 'bar'
     },
 
-    'item_x_multi_brand': {
-        id: 'item_x_multi_brand',
+    'funnel_item_segments_brands': {
+        id: 'funnel_item_segments_brands',
         name: 'ファネル分析①（ファネル①: X=ブランド×セグメント）',
         description: '単一分析項目における複数ブランド・セグメントの比較',
         axes: {
@@ -97,8 +97,8 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
         defaultChartType: 'bar'
     },
 
-    'timeline_segment_multi_brand': {
-        id: 'timeline_segment_multi_brand',
+    'timeline_segment_brands': {
+        id: 'timeline_segment_brands',
         name: 'ファネル分析②（セグメント: X=ファネル②×ブランド）',
         description: '単一セグメントにおける複数ブランドの時系列指標を比較',
         axes: {
@@ -128,8 +128,8 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
         defaultChartType: 'bar'
     },
 
-    'timeline_brand_multi_segment': {
-        id: 'timeline_brand_multi_segment',
+    'timeline_brand_segments': {
+        id: 'timeline_brand_segments',
         name: 'ファネル分析②（ブランド: X=ファネル②×セグメント）',
         description: '単一ブランドにおける複数セグメントの時系列指標を比較',
         axes: {
@@ -159,8 +159,8 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
         defaultChartType: 'bar'
     },
 
-    'timeline_item_multi_brand': {
-        id: 'timeline_item_multi_brand',
+    'timeline_item_segments_brands': {
+        id: 'timeline_item_segments_brands',
         name: 'ファネル分析②（ファネル②: X=ブランド×セグメント）',
         description: '単一分析項目における複数ブランド・セグメントの比較（時系列）',
         axes: {
@@ -222,8 +222,8 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
         defaultChartType: 'bar'
     },
 
-    'brand_analysis_segment_comparison': {
-        id: 'brand_analysis_segment_comparison',
+    'brand_image_brand_segments': {
+        id: 'brand_image_brand_segments',
         name: 'ブランドイメージ分析（ブランド: X=ブランドイメージ×セグメント）',
         description: '単一ブランドにおける複数セグメントのブランドイメージ指標を比較',
         axes: {
@@ -454,14 +454,14 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
  * Mode selection order for dropdown
  */
 export const ANALYSIS_MODE_ORDER = [
-    'segment_x_multi_brand',
-    'brand_x_multi_segment',
-    'item_x_multi_brand',
-    'timeline_segment_multi_brand',
-    'timeline_brand_multi_segment',
-    'timeline_item_multi_brand',
+    'funnel_segment_brands',
+    'funnel_brand_segments',
+    'funnel_item_segments_brands',
+    'timeline_segment_brands',
+    'timeline_brand_segments',
+    'timeline_item_segments_brands',
     'brand_image_segment_brands',
-    'brand_analysis_segment_comparison',
+    'brand_image_brand_segments',
     'brand_power_segment_brands',
     'brand_power_brand_segments',
     'future_power_segment_brands',

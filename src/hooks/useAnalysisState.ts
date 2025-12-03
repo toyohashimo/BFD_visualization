@@ -9,7 +9,7 @@ import { STORAGE_KEYS, LIMITS, MESSAGES } from '../config/constants';
 export const useAnalysisState = () => {
   const [mode, setMode] = usePersistence<AnalysisMode>(
     STORAGE_KEYS.ANALYSIS_MODE,
-    'segment_x_multi_brand' // デフォルトモード
+    'funnel_segment_brands' // デフォルトモード
   );
 
   const [selectedBrands, setSelectedBrands] = usePersistence<string[]>(

@@ -11,7 +11,7 @@
 **モード1**: ファネル分析①（セグメント: X=ファネル①×ブランド）
 
 ### 1.2 モードID
-`segment_x_multi_brand`
+`funnel_segment_brands`
 
 ### 1.3 目的
 特定のセグメント内で、複数のブランドの**ファネル指標（FT-GL）**を比較し、ブランド間の認知から購入、リピートまでの顧客行動段階を評価する。
@@ -156,14 +156,14 @@ export const METRIC_LABELS: { [key in keyof FunnelMetrics]: string } = {
 
 export const METRIC_KEYS: (keyof FunnelMetrics)[] = ['FT', 'FW', 'FZ', 'GC', 'GJ', 'GL'];
 
-export type AnalysisMode = 'segment_x_multi_brand' | ...;
+export type AnalysisMode = 'funnel_segment_brands' | ...;
 ```
 
 ### 5.2 モード設定（constants/analysisConfigs.ts への追加）
 
 ```typescript
-'segment_x_multi_brand': {
-  id: 'segment_x_multi_brand',
+'funnel_segment_brands': {
+  id: 'funnel_segment_brands',
   name: 'ファネル分析①（セグメント: X=ファネル①×ブランド）',
   description: '単一セグメントにおける複数ブランドのファネル指標を比較',
   axes: {

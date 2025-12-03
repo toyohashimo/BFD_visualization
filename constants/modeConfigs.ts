@@ -51,7 +51,7 @@ export const MODE_CONFIGS: Record<string, ModeConfig> = {
     },
 
     // Mode 3: ファネル分析（項目×複数ブランド）
-    'funnel_metric_brands': {
+    'funnel_item_segments_brands': {
         metrics: {
             type: 'single',
             options: METRIC_KEYS,
@@ -97,7 +97,7 @@ export const MODE_CONFIGS: Record<string, ModeConfig> = {
 export const MODE_DISPLAY_NAMES: Record<string, string> = {
     'funnel_segment_brands': '1. ファネル分析（セグメント×複数ブランド）',
     'funnel_brand_segments': '2. ファネル分析（ブランド×複数セグメント）',
-    'funnel_metric_brands': '3. ファネル分析（項目×複数ブランド）',
+    'funnel_item_segments_brands': '3. ファネル分析（項目×複数ブランド）',
     'funnel2_segment_brands': '4. ファネル2分析（セグメント×複数ブランド）'
 };
 
@@ -108,7 +108,7 @@ export const migrateAnalysisMode = (saved: string | null): string => {
     const migration: Record<string, string> = {
         'segment_x_multi_brand': 'funnel_segment_brands',
         'brand_x_multi_segment': 'funnel_brand_segments',
-        'metric_x_multi_segment': 'funnel_metric_brands'
+        'item_x_multi_brand': 'funnel_item_segments_brands'
     };
 
     if (saved && migration[saved]) {

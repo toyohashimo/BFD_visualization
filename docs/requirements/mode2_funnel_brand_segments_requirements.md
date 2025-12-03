@@ -11,18 +11,18 @@
 **モード2**: ファネル分析①（ブランド: X=ファネル①×セグメント）
 
 ### 1.2 モードID
-`brand_x_multi_segment`
+`funnel_brand_segments`
 
 ### 1.3 目的
 特定のブランドにおいて、複数のセグメント間で**ファネル指標（FT-GL）**を比較し、セグメント別の顧客行動段階の違いを評価する。
 
 ### 1.4 参照モード
-**モード1**（`segment_x_multi_brand`）: ファネル分析①（セグメント固定×複数ブランド）
+**モード1**（`funnel_segment_brands`）: ファネル分析①（セグメント固定×複数ブランド）
 
 ### 1.5 モード1との差分
 | 項目 | モード1（セグメント固定） | モード2（ブランド固定） |
 |------|-------------------------|------------------------|
-| **モードID** | `segment_x_multi_brand` | `brand_x_multi_segment` |
+| **モードID** | `funnel_segment_brands` | `funnel_brand_segments` |
 | **固定軸** | 単一セグメント | 単一ブランド |
 | **比較軸** | 複数ブランド | 複数セグメント |
 | **分析視点** | 「セグメント内でブランドを比較」 | 「ブランド内でセグメントを比較」 |
@@ -142,8 +142,8 @@ AG列 = 32 (GL: リピート意向あり) ★
 ### 5.1 モード設定（constants/analysisConfigs.ts）
 
 ```typescript
-'brand_x_multi_segment': {
-  id: 'brand_x_multi_segment',
+'funnel_brand_segments': {
+  id: 'funnel_brand_segments',
   name: 'ファネル分析①（ブランド: X=ファネル①×セグメント）',
   description: '単一ブランドにおける複数セグメントのファネル指標を比較',
   axes: {
@@ -318,7 +318,7 @@ AG列 = 32 (GL: リピート意向あり) ★
 
 ### 10.3 実装の効率化
 モード1の実装をコピーし、以下の箇所のみ変更すればOK：
-1. モードID: `segment_x_multi_brand` → `brand_x_multi_segment`
+1. モードID: `funnel_segment_brands` → `funnel_brand_segments`
 2. axes.segments.role: `'FILTER'` → `'SERIES'`
 3. axes.brands.role: `'SERIES'` → `'FILTER'`
 4. dataTransform.series: `'brands'` → `'segments'`

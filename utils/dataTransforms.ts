@@ -70,7 +70,7 @@ const getXAxisItems = (
         case 'segments':
             return Object.keys(data);
         case 'brands':
-            // For item_x_multi_brand mode, use the selected brands from seriesValues
+            // For funnel_item_segments_brands mode, use the selected brands from seriesValues
             return seriesValues.brands.length > 0 ? seriesValues.brands : [];
         case 'items':
             // Items are currently not expected to be dynamic
@@ -239,7 +239,7 @@ export const transformDataForChart = (
  */
 export const transformDataForChartLegacy = (
     data: SheetData,
-    mode: 'segment_x_multi_brand' | 'brand_x_multi_segment',
+    mode: 'funnel_segment_brands' | 'funnel_brand_segments',
     primarySelection: string,
     secondarySelections: string[],
     getLabel: (key: string) => string
@@ -249,7 +249,7 @@ export const transformDataForChartLegacy = (
         secondarySelections.forEach((secItem) => {
             let metrics: FunnelMetrics | undefined;
 
-            if (mode === 'segment_x_multi_brand') {
+            if (mode === 'funnel_segment_brands') {
                 metrics = data[primarySelection]?.[secItem];
             } else {
                 metrics = data[secItem]?.[primarySelection];

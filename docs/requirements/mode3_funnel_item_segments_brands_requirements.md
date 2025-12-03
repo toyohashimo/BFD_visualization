@@ -11,19 +11,19 @@
 **モード3**: ファネル分析①（ファネル①: X=ブランド×セグメント）
 
 ### 1.2 モードID
-`item_x_multi_brand`
+`funnel_item_segments_brands`
 
 ### 1.3 目的
 特定のファネル指標を選択し、複数のブランドを複数のセグメントで比較することで、特定指標における多角的な分析を行う。
 
 ### 1.4 参照モード
-**モード1**（`segment_x_multi_brand`）: ファネル分析①（セグメント固定×複数ブランド）
-**モード2**（`brand_x_multi_segment`）: ファネル分析①（ブランド固定×複数セグメント）
+**モード1**（`funnel_segment_brands`）: ファネル分析①（セグメント固定×複数ブランド）
+**モード2**（`funnel_brand_segments`）: ファネル分析①（ブランド固定×複数セグメント）
 
 ### 1.5 モード1・2との差分
 | 項目 | モード1 | モード2 | モード3 |
 |------|---------|---------|---------|
-| **モードID** | `segment_x_multi_brand` | `brand_x_multi_segment` | `item_x_multi_brand` |
+| **モードID** | `funnel_segment_brands` | `funnel_brand_segments` | `funnel_item_segments_brands` |
 | **固定軸** | 単一セグメント | 単一ブランド | 単一ファネル指標 |
 | **X軸** | ファネル6指標 | ファネル6指標 | 複数ブランド |
 | **データ系列** | 複数ブランド | 複数セグメント | 複数セグメント |
@@ -129,8 +129,8 @@
 ### 5.1 モード設定（constants/analysisConfigs.ts）
 
 ```typescript
-'item_x_multi_brand': {
-  id: 'item_x_multi_brand',
+'funnel_item_segments_brands': {
+  id: 'funnel_item_segments_brands',
   name: 'ファネル分析①（ファネル①: X=ブランド×セグメント）',
   description: '単一分析項目における複数ブランド・セグメントの比較',
   axes: {

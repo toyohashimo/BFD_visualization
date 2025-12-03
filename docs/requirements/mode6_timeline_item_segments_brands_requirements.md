@@ -11,15 +11,15 @@
 **モード6**: ファネル分析②（ファネル②: X=ブランド×セグメント）
 
 ### 1.2 モードID
-`timeline_item_multi_brand`
+`timeline_item_segments_brands`
 
 ### 1.3 目的
 特定の時系列指標を選択し、複数のブランドを複数のセグメントで比較することで、特定の購入・利用時期における多角的な分析を行う。
 
 ### 1.4 参照モード
-**モード3**（`item_x_multi_brand`）: ファネル分析①（項目固定×複数ブランド）
-**モード4**（`timeline_brand_multi_segment`）: ファネル分析②（ブランド固定×複数セグメント）
-**モード5**（`timeline_segment_multi_brand`）: ファネル分析②（セグメント固定×複数ブランド）
+**モード3**（`funnel_item_segments_brands`）: ファネル分析①（項目固定×複数ブランド）
+**モード4**（`timeline_brand_segments`）: ファネル分析②（ブランド固定×複数セグメント）
+**モード5**（`timeline_segment_brands`）: ファネル分析②（セグメント固定×複数ブランド）
 
 ### 1.5 モード3との類似性
 | 項目 | モード3（ファネル①） | モード6（ファネル②） |
@@ -122,8 +122,8 @@
 ### 5.1 モード設定（constants/analysisConfigs.ts）
 
 ```typescript
-'timeline_item_multi_brand': {
-  id: 'timeline_item_multi_brand',
+'timeline_item_segments_brands': {
+  id: 'timeline_item_segments_brands',
   name: 'ファネル分析②（ファネル②: X=ブランド×セグメント）',
   description: '単一分析項目における複数ブランド・セグメントの比較（時系列）',
   axes: {

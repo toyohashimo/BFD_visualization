@@ -23,7 +23,7 @@ export const useCSVExport = (
     }
 
     // チェック処理
-    if (analysisMode === 'segment_x_multi_brand' || analysisMode === 'item_x_multi_brand') {
+    if (analysisMode === 'funnel_segment_brands' || analysisMode === 'funnel_item_segments_brands') {
       if (selectedBrands.length === 0) {
         alert(MESSAGES.ERROR.NO_BRANDS_SELECTED);
         return;
@@ -41,8 +41,8 @@ export const useCSVExport = (
 
     let csvContent = '\ufeff';
 
-    // Mode 3: item_x_multi_brand
-    if (analysisMode === 'item_x_multi_brand') {
+    // Mode 3: funnel_item_segments_brands
+    if (analysisMode === 'funnel_item_segments_brands') {
       csvContent += '名称';
       selectedSegments.forEach(seg => {
         const displaySegName = formatSegmentName(seg);
@@ -65,8 +65,8 @@ export const useCSVExport = (
         csvContent += '\n';
       });
     }
-    // Mode 1: segment_x_multi_brand
-    else if (analysisMode === 'segment_x_multi_brand') {
+    // Mode 1: funnel_segment_brands
+    else if (analysisMode === 'funnel_segment_brands') {
       csvContent +=
         '名称,認知あり(TOP2),興味あり(TOP2),好意あり(TOP2),購入・利用意向あり(TOP2),購入・利用経験あり(TOP5),リピート意向あり(TOP2)\n';
 

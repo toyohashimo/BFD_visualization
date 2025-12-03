@@ -184,14 +184,14 @@ export type ItemSet = 'funnel' | 'funnel2' | 'timeline' | 'brandImage' | 'brandP
 
 // Add to AnalysisMode type
 export type AnalysisMode =
-  | 'segment_x_multi_brand'
-  | 'brand_x_multi_segment'
-  | 'item_x_multi_brand'
-  | 'timeline_brand_multi_segment'
-  | 'timeline_segment_multi_brand'
-  | 'timeline_item_multi_brand'
+  | 'funnel_segment_brands'
+  | 'funnel_brand_segments'
+  | 'funnel_item_segments_brands'
+  | 'timeline_brand_segments'
+  | 'timeline_segment_brands'
+  | 'timeline_item_segments_brands'
   | 'brand_image_segment_brands'
-  | 'brand_analysis_segment_comparison'
+  | 'brand_image_brand_segments'
   | 'brand_power_segment_brands'
   | 'brand_power_brand_segments'
   | 'future_power_segment_brands'

@@ -118,7 +118,7 @@ export const BrandsSection: React.FC<BrandsSectionProps> = ({
                                 className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer"
                             >
                                 <option value="">ブランドを追加...</option>
-                                {(analysisMode === 'segment_x_multi_brand' ? availableBrands : allUniqueBrands)
+                                {(analysisMode === 'funnel_segment_brands' ? availableBrands : allUniqueBrands)
                                     .filter(b => !selectedBrands.includes(b))
                                     .map(brand => (
                                         <option key={brand} value={brand}>{getBrandName(brand)}</option>

@@ -132,7 +132,7 @@ const App: React.FC = () => {
 
   // データが無い場合、モード1にリセット
   useEffect(() => {
-    const defaultMode = globalMode === 'historical' ? 'historical_funnel1_segment_brand' : 'segment_x_multi_brand';
+    const defaultMode = globalMode === 'historical' ? 'historical_funnel1_segment_brand' : 'funnel_segment_brands';
     if (!hasValidData && analysisMode !== defaultMode) {
       setAnalysisMode(defaultMode);
     }
@@ -142,7 +142,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (analysisMode && !currentModeConfigs[analysisMode]) {
       console.warn(`Invalid analysis mode: ${analysisMode}, falling back to default`);
-      const defaultMode = globalMode === 'historical' ? 'historical_funnel1_segment_brand' : 'segment_x_multi_brand';
+      const defaultMode = globalMode === 'historical' ? 'historical_funnel1_segment_brand' : 'funnel_segment_brands';
       setAnalysisMode(defaultMode);
     }
   }, [analysisMode, setAnalysisMode, currentModeConfigs, globalMode]);
@@ -273,7 +273,7 @@ const App: React.FC = () => {
 
   // モード1が自動選択された際に、ブランドとセグメントが未選択の場合は最初のものを自動選択
   useEffect(() => {
-    if (hasValidData && analysisMode === 'segment_x_multi_brand') {
+    if (hasValidData && analysisMode === 'funnel_segment_brands') {
       // セグメントが未選択の場合、最初のセグメントを選択
       if (!sheet && availableSegments.length > 0) {
         setSheet(availableSegments[0]);
@@ -542,7 +542,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleClearAll = () => {
-    if (analysisMode === 'segment_x_multi_brand') {
+    if (analysisMode === 'funnel_segment_brands') {
       handleClearAllBrands();
     } else {
       handleClearAllSegments();
@@ -641,7 +641,7 @@ const App: React.FC = () => {
     } else if (newMode === 'detailed' && globalMode === 'historical') {
       // 過去比較→詳細分析に切り替えた場合
       // 詳細分析モードのデフォルト分析モードに切り替え
-      setAnalysisMode('segment_x_multi_brand');
+      setAnalysisMode('funnel_segment_brands');
     }
     
     setGlobalMode(newMode);

@@ -11,7 +11,7 @@
 **モード8**: ブランドイメージ分析（ブランド: X=ブランドイメージ×セグメント）
 
 ### 1.2 モードID
-`brand_analysis_segment_comparison`
+`brand_image_brand_segments`
 
 ### 1.3 目的
 特定のブランドにおいて、複数のセグメント間で**ブランドイメージ指標（全133項目）**の中から上位30項目を抽出し、セグメント間のイメージの違いを比較する。
@@ -22,7 +22,7 @@
 ### 1.5 モード7との差分
 | 項目 | モード7（セグメント固定） | モード8（ブランド固定） |
 |------|-------------------------|------------------------|
-| **モードID** | `brand_image_segment_brands` | `brand_analysis_segment_comparison` |
+| **モードID** | `brand_image_segment_brands` | `brand_image_brand_segments` |
 | **固定軸** | 単一セグメント | 単一ブランド |
 | **比較軸** | 複数ブランド | 複数セグメント |
 | **分析視点** | 「セグメント内でブランドを比較」 | 「ブランド内でセグメントを比較」 |
@@ -120,8 +120,8 @@
 ### 5.1 モード設定（constants/analysisConfigs.ts）
 
 ```typescript
-'brand_analysis_segment_comparison': {
-  id: 'brand_analysis_segment_comparison',
+'brand_image_brand_segments': {
+  id: 'brand_image_brand_segments',
   name: 'ブランドイメージ分析（ブランド: X=ブランドイメージ×セグメント）',
   description: '単一ブランドにおける複数セグメントのブランドイメージ指標を比較',
   axes: {
@@ -332,7 +332,7 @@ function selectTop30ItemsForMode8(
 
 ### 10.4 実装の効率化
 モード7の実装をコピーし、以下の箇所のみ変更すればOK：
-1. モードID: `brand_image_segment_brands` → `brand_analysis_segment_comparison`
+1. モードID: `brand_image_segment_brands` → `brand_image_brand_segments`
 2. axes.segments.role: `'FILTER'` → `'SERIES'`
 3. axes.brands.role: `'SERIES'` → `'FILTER'`
 4. dataTransform.series: `'brands'` → `'segments'`
