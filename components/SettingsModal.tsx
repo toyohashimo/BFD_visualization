@@ -189,11 +189,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs font-bold text-blue-800 mb-2">使用可能な変数:</p>
               <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                <li><code className="bg-blue-100 px-1 rounded">{'{{globalMode}}'}</code> - グローバルモード（詳細分析/過去比較）</li>
                 <li><code className="bg-blue-100 px-1 rounded">{'{{analysisMode}}'}</code> - 分析モード名</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{sheet}}'}</code> - 選択セグメント</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{selectedBrands}}'}</code> - 選択ブランド（カンマ区切り）</li>
                 <li><code className="bg-blue-100 px-1 rounded">{'{{selectedItem}}'}</code> - 選択項目</li>
+                <li><code className="bg-blue-100 px-1 rounded">{'{{segments}}'}</code> - 選択セグメント（クリーンアップ済み、複数の場合はカンマ区切り）</li>
+                <li><code className="bg-blue-100 px-1 rounded">{'{{selectedBrands}}'}</code> - 選択ブランド（カンマ区切り）</li>
                 <li><code className="bg-blue-100 px-1 rounded">{'{{chartData}}'}</code> - チャートデータ（JSON形式）</li>
+                <li><code className="bg-blue-100 px-1 rounded">{'{{comparisonInstruction}}'}</code> - 複数ブランド比較時の指示（自動生成）</li>
               </ul>
             </div>
           </div>

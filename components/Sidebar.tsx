@@ -34,8 +34,8 @@ import { DataSourceManager } from './DataSourceManager';
 import { SheetData, AnalysisMode, ChartType, FunnelMetrics, TimelineMetrics, GlobalMode, DataSource } from '../src/types';
 import { METRIC_LABELS } from '../types';
 import { COLOR_THEMES } from '../constants';
-import { 
-    ANALYSIS_MODE_CONFIGS, 
+import {
+    ANALYSIS_MODE_CONFIGS,
     ANALYSIS_MODE_ORDER,
     HISTORICAL_ANALYSIS_MODE_CONFIGS,
     HISTORICAL_ANALYSIS_MODE_ORDER
@@ -52,7 +52,7 @@ interface SidebarProps {
     onUpdateDataSourceName: (id: string, name: string) => void;
     onToggleDataSourceActive: (id: string) => void;
     onResetAllDataSources?: () => void;
-    
+
     // 既存のprops
     isExcelData: boolean;
     currentFileName: string; // 詳細分析モード用のファイル名
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onUpdateDataSourceName,
     onToggleDataSourceActive,
     onResetAllDataSources,
-    
+
     // 既存のprops
     isExcelData,
     currentFileName,
@@ -194,10 +194,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     /**
      * グローバルモードに応じて使用する分析モード設定を取得
      */
-    const currentModeConfigs = globalMode === 'historical' 
-        ? HISTORICAL_ANALYSIS_MODE_CONFIGS 
+    const currentModeConfigs = globalMode === 'historical'
+        ? HISTORICAL_ANALYSIS_MODE_CONFIGS
         : ANALYSIS_MODE_CONFIGS;
-    
+
     const currentModeOrder = globalMode === 'historical'
         ? HISTORICAL_ANALYSIS_MODE_ORDER
         : ANALYSIS_MODE_ORDER;
@@ -207,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const handleTitleDoubleClick = async (e: React.MouseEvent) => {
         if (e.shiftKey) {
             e.stopPropagation(); // Prevent the anonymization toggle
-            
+
             // 過去比較モード時は3つのサンプルファイルを読み込み
             if (globalMode === 'historical') {
                 try {
@@ -216,31 +216,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         'sample_202406.xlsx',
                         'sample_202506.xlsx'
                     ];
-                    
+
                     // 注意: 既存のデータソースをクリアせず、追加読み込み
-                    
+
                     let successCount = 0;
                     let failedFiles: string[] = [];
-                    
+
                     // 3つのファイルを順次読み込み
                     for (const fileName of sampleFiles) {
                         try {
                             console.log(`読み込み中: ${fileName}`);
                             const response = await fetch(`/${fileName}`);
-                            
+
                             if (!response.ok) {
                                 console.warn(`${fileName}が見つかりませんでした (Status: ${response.status})`);
                                 failedFiles.push(fileName);
                                 continue;
                             }
-                            
+
                             const blob = await response.blob();
                             console.log(`${fileName} のサイズ: ${blob.size} bytes`);
-                            
-                            const file = new File([blob], fileName, { 
-                                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+                            const file = new File([blob], fileName, {
+                                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                             });
-                            
+
                             await onAddDataSource(file);
                             successCount++;
                             console.log(`✓ ${fileName} を読み込みました`);
@@ -249,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             failedFiles.push(fileName);
                         }
                     }
-                    
+
                     // 結果を表示
                     if (successCount > 0) {
                         console.log(`✓ ${successCount}個のサンプルファイルを追加しました`);
@@ -272,8 +272,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         return;
                     }
                     const blob = await response.blob();
-                    const file = new File([blob], 'sample_202506.xlsx', { 
-                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    const file = new File([blob], 'sample_202506.xlsx', {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                     });
                     await onFileDrop(file);
                     console.log('Sample data loaded via hidden command');
@@ -375,7 +375,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <div className="flex-shrink-0 p-1.5 bg-white rounded-lg shadow-sm">
                                     <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
                                 </div>
-                                
+
                                 {/* ファイル名 */}
                                 <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium text-gray-800 truncate" title={currentFileName}>
@@ -385,7 +385,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         読み込み済み
                                     </div>
                                 </div>
-                                
+
                                 {/* 削除ボタン */}
                                 <button
                                     onClick={(e) => {
@@ -420,15 +420,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 }
                             }}
                             disabled={
-                                globalMode === 'detailed' 
-                                    ? !isExcelData 
+                                globalMode === 'detailed'
+                                    ? !isExcelData
                                     : dataSources.length === 0
                             }
-                            className={`w-full p-2.5 pr-8 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none ${
-                                (globalMode === 'detailed' && !isExcelData) || (globalMode === 'historical' && dataSources.length === 0)
-                                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                            className={`w-full p-2.5 pr-8 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none ${(globalMode === 'detailed' && !isExcelData) || (globalMode === 'historical' && dataSources.length === 0)
+                                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                                     : 'bg-white border-gray-200 cursor-pointer'
-                            }`}
+                                }`}
                         >
                             {currentModeOrder.map((modeId, index) => (
                                 <option
@@ -478,6 +477,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     activePalette={activePalette}
                     sensors={sensors}
                     handleDragEnd={handleDragEnd}
+                    isAnonymized={isAnonymized}
                 />
 
                 <div className="border-t border-gray-200 my-4" />
@@ -558,8 +558,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             onChange={(e) => setYAxisMax(e.target.value === '' ? '' : Number(e.target.value))}
                             disabled={useAutoScale}
                             className={`w-16 p-1 text-xs border rounded text-right outline-none transition-colors ${useAutoScale
-                                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white border-gray-300 focus:ring-1 focus:ring-indigo-500'
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-white border-gray-300 focus:ring-1 focus:ring-indigo-500'
                                 }`}
                             placeholder={useAutoScale ? "-" : "Auto"}
                         />

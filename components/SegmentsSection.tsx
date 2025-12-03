@@ -12,11 +12,12 @@ import {
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { SortableBrandItem } from './SortableBrandItem';
-import { AnalysisMode, SheetData, GlobalMode } from '../types';
-import { 
-    ANALYSIS_MODE_CONFIGS, 
-    HISTORICAL_ANALYSIS_MODE_CONFIGS 
+import { AnalysisMode, SheetData, GlobalMode } from '../src/types';
+import {
+    ANALYSIS_MODE_CONFIGS,
+    HISTORICAL_ANALYSIS_MODE_CONFIGS
 } from '../constants/analysisConfigs';
+import { formatSegmentName } from '../src/utils/formatters';
 
 interface SegmentsSectionProps {
     globalMode: GlobalMode;
@@ -33,6 +34,7 @@ interface SegmentsSectionProps {
     activePalette: any[];
     sensors: SensorDescriptor<SensorOptions>[];
     handleDragEnd: (event: DragEndEvent) => void;
+    isAnonymized: boolean;
 }
 
 export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
@@ -49,17 +51,18 @@ export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
     segmentColorIndices,
     activePalette,
     sensors,
-    handleDragEnd
+    handleDragEnd,
+    isAnonymized
 }) => {
     // analysisModeが空の場合は何も表示しない
     if (!analysisMode) {
         return null;
     }
 
-    const currentModeConfigs = globalMode === 'historical' 
-        ? HISTORICAL_ANALYSIS_MODE_CONFIGS 
+    const currentModeConfigs = globalMode === 'historical'
+        ? HISTORICAL_ANALYSIS_MODE_CONFIGS
         : ANALYSIS_MODE_CONFIGS;
-    
+
     const config = currentModeConfigs[analysisMode];
     if (!config) {
         return null;
@@ -91,8 +94,8 @@ export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
                         onChange={(e) => setSheet(e.target.value)}
                         className="w-full p-2.5 pr-8 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer"
                     >
-                        {availableSegments.map(s => (
-                            <option key={s} value={s}>{s.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim()}</option>
+                        {availableSegments.map((s, index) => (
+                            <option key={s} value={s}>{formatSegmentName(s, isAnonymized, index)}</option>
                         ))}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
@@ -113,8 +116,8 @@ export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
                                 <option value="">セグメントを追加...</option>
                                 {availableSegments
                                     .filter(s => !selectedSegments.includes(s))
-                                    .map(seg => (
-                                        <option key={seg} value={seg}>{seg.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim()}</option>
+                                    .map((seg, index) => (
+                                        <option key={seg} value={seg}>{formatSegmentName(seg, isAnonymized, index)}</option>
                                     ))}
                             </select>
                             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
@@ -157,7 +160,7 @@ export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
                                             key={seg}
                                             id={seg}
                                             color={color}
-                                            name={seg.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim()}
+                                            name={formatSegmentName(seg, isAnonymized, index)}
                                             onRemove={handleRemoveSegment}
                                         />
                                     );

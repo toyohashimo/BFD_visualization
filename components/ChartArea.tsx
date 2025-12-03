@@ -17,9 +17,10 @@ import {
     PolarRadiusAxis,
 } from 'recharts';
 import { SheetData, AnalysisMode, ChartType, ChartDataPoint, FunnelMetrics, TimelineMetrics, AllMetrics, GlobalMode, DataSource, getItemKeysForSet, getItemLabelsForSet } from '../src/types';
-import { 
-    ANALYSIS_MODE_CONFIGS, 
-    HISTORICAL_ANALYSIS_MODE_CONFIGS 
+import { formatSegmentName } from '../src/utils/formatters';
+import {
+    ANALYSIS_MODE_CONFIGS,
+    HISTORICAL_ANALYSIS_MODE_CONFIGS
 } from '../constants/analysisConfigs';
 import { AISummaryButton } from './AISummaryButton';
 import { AISummaryCard } from './AISummaryCard';
@@ -91,8 +92,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
 
     // グローバルモードに応じた分析モード設定
     const currentModeConfigs = useMemo(() => {
-        return globalMode === 'historical' 
-            ? HISTORICAL_ANALYSIS_MODE_CONFIGS 
+        return globalMode === 'historical'
+            ? HISTORICAL_ANALYSIS_MODE_CONFIGS
             : ANALYSIS_MODE_CONFIGS;
     }, [globalMode]);
 
@@ -152,7 +153,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         if (globalMode === 'historical') {
             return dataSources.filter(ds => ds.isActive).map(ds => ds.name);
         }
-        
+
         // 詳細分析モードの場合は既存のロジック
         const config = currentModeConfigs[analysisMode];
         if (!config) return [];
@@ -214,7 +215,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         return index;
     }, [analysisMode, brandColorIndices, segmentColorIndices, currentModeConfigs]);
 
-    const getSeriesDisplayName = useCallback((item: string): string => {
+    const getSeriesDisplayName = useCallback((item: string, index?: number): string => {
         const config = currentModeConfigs[analysisMode];
         if (!config) return item;
         const seriesAxis = config.dataTransform.series;
@@ -222,17 +223,17 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         if (seriesAxis === 'brands') {
             return getBrandName(item);
         } else if (seriesAxis === 'segments') {
-            return item.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim();
+            return formatSegmentName(item, isAnonymized, index);
         }
         return item;
-    }, [analysisMode, getBrandName, currentModeConfigs]);
+    }, [analysisMode, getBrandName, currentModeConfigs, isAnonymized]);
 
     // Manual Legend Payload
     const legendPayload = useMemo(() => {
         return seriesItems.map((item, index) => {
             const colorIndex = getSeriesColorIndex(item, index);
             const colorObj = activePalette[colorIndex % activePalette.length];
-            const displayName = getSeriesDisplayName(item);
+            const displayName = getSeriesDisplayName(item, index);
             return {
                 id: displayName,
                 value: displayName,
@@ -262,8 +263,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
     // Custom Tooltip Sorter
     const tooltipItemSorter = useCallback((item: any) => {
         const displayName = item.name;
-        const index = seriesItems.findIndex(seriesItem =>
-            getSeriesDisplayName(seriesItem) === displayName
+        const index = seriesItems.findIndex((seriesItem, idx) =>
+            getSeriesDisplayName(seriesItem, idx) === displayName
         );
         return index === -1 ? 999 : index;
     }, [seriesItems, getSeriesDisplayName]);
@@ -272,18 +273,18 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
     const chartFilters = useMemo(() => {
         const config = currentModeConfigs[analysisMode];
         if (!config) return [];
-        
+
         const filters: Array<{ label: string; value: string }> = [];
 
         // Mode 2/4/6では複数のフィルタ（セグメント + 項目）がある場合があるため、
         // role: 'FILTER' の軸をすべて収集
         const axes = config.axes;
-        
+
         // セグメントがフィルタの場合
         if (axes.segments.role === 'FILTER') {
             filters.push({
                 label: axes.segments.label,
-                value: sheet.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim()
+                value: formatSegmentName(sheet, isAnonymized)
             });
         }
 
@@ -321,7 +322,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         const config = currentModeConfigs[analysisMode];
         const itemSet = config?.axes.items?.itemSet || 'funnel';
         const itemLabels = getItemLabelsForSet(itemSet);
-        
+
         // ブランド名マップを作成
         const brandNames: Record<string, string> = {};
         [...selectedBrands, targetBrand].forEach(brand => {
@@ -391,168 +392,168 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                         <ResponsiveContainer width="100%" height="100%">
                             {chartType === 'radar' ? (
                                 <RadarChart key={seriesItems.join(',')} outerRadius={isBrandImageMode ? "60%" : "70%"} data={chartData} margin={{ bottom: 20 }} startAngle={90} endAngle={-270}>
-                                <PolarGrid stroke="#e5e7eb" />
-                                <PolarAngleAxis
-                                    dataKey="name"
-                                    tick={{
-                                        fill: '#4b5563',
-                                        fontSize: isBrandImageMode ? 9 : 12,
-                                        fontWeight: 500
-                                    }}
-                                />
-                                <PolarRadiusAxis angle={90} domain={yAxisDomain} tick={{ fill: '#9ca3af', fontSize: 10 }} />
-                                {seriesItems.map((item, index) => {
-                                    const colorIndex = getSeriesColorIndex(item, index);
-                                    const colorObj = activePalette[colorIndex % activePalette.length];
-                                    const displayName = getSeriesDisplayName(item);
-                                    return (
-                                        <Radar
-                                            key={item}
-                                            name={displayName}
-                                            dataKey={displayName}
-                                            stroke={colorObj.border}
-                                            fill={colorObj.bg}
-                                            fillOpacity={0.5}
-                                        />
-                                    );
-                                })}
-                                <Tooltip
-                                    itemSorter={tooltipItemSorter}
-                                    formatter={(value: number) => Number(value).toFixed(1)}
-                                />
-                            </RadarChart>
-                        ) : chartType === 'line' ? (
-                            <LineChart key={seriesItems.join(',')} data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: isBrandImageMode ? 140 : 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    interval={isBrandImageMode ? 0 : 'preserveStartEnd'}
-                                    tick={{
-                                        fill: '#6b7280',
-                                        fontSize: isBrandImageMode ? 10 : 12,
-                                        angle: isBrandImageMode ? -90 : 0,
-                                        textAnchor: isBrandImageMode ? 'end' : 'middle'
-                                    }}
-                                    dy={10}
-                                    height={isBrandImageMode ? 140 : 30}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#9ca3af', fontSize: 11 }}
-                                    domain={yAxisDomain}
-                                />
-                                <Tooltip
-                                    itemSorter={tooltipItemSorter}
-                                    formatter={(value: number) => Number(value).toFixed(1)}
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
-                                />
-                                {seriesItems.map((item, index) => {
-                                    const colorIndex = getSeriesColorIndex(item, index);
-                                    const colorObj = activePalette[colorIndex % activePalette.length];
-                                    const displayName = getSeriesDisplayName(item);
-                                    return (
-                                        <Line
-                                            key={item}
-                                            type="monotone"
-                                            dataKey={displayName}
-                                            stroke={colorObj.border}
-                                            strokeWidth={3}
-                                            dot={{ r: 4, fill: '#fff', strokeWidth: 2 }}
-                                            activeDot={{ r: 6 }}
-                                            label={showDataLabels ? { position: 'top', formatter: (val: any) => Number(val).toFixed(1), fill: '#6b7280', fontSize: 14 } : false}
-                                        />
-                                    );
-                                })}
-                            </LineChart>
-                        ) : chartType === 'horizontalBar' ? (
-                            <BarChart key={seriesItems.join(',')} layout="vertical" data={chartData} margin={{ top: 20, right: 30, left: isBrandImageMode ? 150 : 50, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
-                                <XAxis type="number" domain={yAxisDomain} hide />
-                                <YAxis
-                                    dataKey="name"
-                                    type="category"
-                                    width={isBrandImageMode ? 130 : 120}
-                                    tick={{ fontSize: isBrandImageMode ? 9 : 11, fill: '#4b5563' }}
-                                    interval={0}
-                                />
-                                <Tooltip
-                                    itemSorter={tooltipItemSorter}
-                                    cursor={{ fill: '#f9fafb' }}
-                                    formatter={(value: number) => Number(value).toFixed(1)}
-                                />
-                                {seriesItems.map((item, index) => {
-                                    const colorIndex = getSeriesColorIndex(item, index);
-                                    const colorObj = activePalette[colorIndex % activePalette.length];
-                                    const displayName = getSeriesDisplayName(item);
-                                    return (
-                                        <Bar
-                                            key={item}
-                                            dataKey={displayName}
-                                            fill={colorObj.bg}
-                                            radius={[0, 4, 4, 0]}
-                                            barSize={20}
-                                            label={showDataLabels ? { position: 'right', formatter: (val: any) => Number(val).toFixed(1), fill: '#6b7280', fontSize: 14 } : false}
-                                        />
-                                    );
-                                })}
-                            </BarChart>
-                        ) : (
-                            <BarChart key={seriesItems.join(',')} data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: isBrandImageMode ? 140 : 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    interval={isBrandImageMode ? 0 : 'preserveStartEnd'}
-                                    tick={{
-                                        fill: '#6b7280',
-                                        fontSize: isBrandImageMode ? 10 : 12,
-                                        angle: isBrandImageMode ? -90 : 0,
-                                        textAnchor: isBrandImageMode ? 'end' : 'middle'
-                                    }}
-                                    dy={10}
-                                    height={isBrandImageMode ? 140 : 30}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#9ca3af', fontSize: 11 }}
-                                    domain={yAxisDomain}
-                                />
-                                <Tooltip
-                                    itemSorter={tooltipItemSorter}
-                                    formatter={(value: number) => Number(value).toFixed(1)}
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    cursor={{ fill: '#f9fafb' }}
-                                />
-                                {seriesItems.map((item, index) => {
-                                    const colorIndex = getSeriesColorIndex(item, index);
-                                    const colorObj = activePalette[colorIndex % activePalette.length];
-                                    const displayName = getSeriesDisplayName(item);
-                                    return (
-                                        <Bar
-                                            key={item}
-                                            dataKey={displayName}
-                                            fill={colorObj.bg}
-                                            radius={[4, 4, 0, 0]}
-                                            label={showDataLabels ? (props: any) => {
-                                                const { x, y, width, value } = props;
-                                                return (
-                                                    <text x={x + width / 2} y={y} dy={-6} fill="#6b7280" fontSize={14} textAnchor="middle">
-                                                        {Number(value).toFixed(1)}
-                                                    </text>
-                                                );
-                                            } : false}
-                                        />
-                                    );
-                                })}
-                            </BarChart>
-                        )}
-                    </ResponsiveContainer>
+                                    <PolarGrid stroke="#e5e7eb" />
+                                    <PolarAngleAxis
+                                        dataKey="name"
+                                        tick={{
+                                            fill: '#4b5563',
+                                            fontSize: isBrandImageMode ? 9 : 12,
+                                            fontWeight: 500
+                                        }}
+                                    />
+                                    <PolarRadiusAxis angle={90} domain={yAxisDomain} tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                                    {seriesItems.map((item, index) => {
+                                        const colorIndex = getSeriesColorIndex(item, index);
+                                        const colorObj = activePalette[colorIndex % activePalette.length];
+                                        const displayName = getSeriesDisplayName(item);
+                                        return (
+                                            <Radar
+                                                key={item}
+                                                name={displayName}
+                                                dataKey={displayName}
+                                                stroke={colorObj.border}
+                                                fill={colorObj.bg}
+                                                fillOpacity={0.5}
+                                            />
+                                        );
+                                    })}
+                                    <Tooltip
+                                        itemSorter={tooltipItemSorter}
+                                        formatter={(value: number) => Number(value).toFixed(1)}
+                                    />
+                                </RadarChart>
+                            ) : chartType === 'line' ? (
+                                <LineChart key={seriesItems.join(',')} data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: isBrandImageMode ? 140 : 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        interval={isBrandImageMode ? 0 : 'preserveStartEnd'}
+                                        tick={{
+                                            fill: '#6b7280',
+                                            fontSize: isBrandImageMode ? 10 : 12,
+                                            angle: isBrandImageMode ? -90 : 0,
+                                            textAnchor: isBrandImageMode ? 'end' : 'middle'
+                                        }}
+                                        dy={10}
+                                        height={isBrandImageMode ? 140 : 30}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9ca3af', fontSize: 11 }}
+                                        domain={yAxisDomain}
+                                    />
+                                    <Tooltip
+                                        itemSorter={tooltipItemSorter}
+                                        formatter={(value: number) => Number(value).toFixed(1)}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
+                                    />
+                                    {seriesItems.map((item, index) => {
+                                        const colorIndex = getSeriesColorIndex(item, index);
+                                        const colorObj = activePalette[colorIndex % activePalette.length];
+                                        const displayName = getSeriesDisplayName(item);
+                                        return (
+                                            <Line
+                                                key={item}
+                                                type="monotone"
+                                                dataKey={displayName}
+                                                stroke={colorObj.border}
+                                                strokeWidth={3}
+                                                dot={{ r: 4, fill: '#fff', strokeWidth: 2 }}
+                                                activeDot={{ r: 6 }}
+                                                label={showDataLabels ? { position: 'top', formatter: (val: any) => Number(val).toFixed(1), fill: '#6b7280', fontSize: 14 } : false}
+                                            />
+                                        );
+                                    })}
+                                </LineChart>
+                            ) : chartType === 'horizontalBar' ? (
+                                <BarChart key={seriesItems.join(',')} layout="vertical" data={chartData} margin={{ top: 20, right: 30, left: isBrandImageMode ? 150 : 50, bottom: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
+                                    <XAxis type="number" domain={yAxisDomain} hide />
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        width={isBrandImageMode ? 130 : 120}
+                                        tick={{ fontSize: isBrandImageMode ? 9 : 11, fill: '#4b5563' }}
+                                        interval={0}
+                                    />
+                                    <Tooltip
+                                        itemSorter={tooltipItemSorter}
+                                        cursor={{ fill: '#f9fafb' }}
+                                        formatter={(value: number) => Number(value).toFixed(1)}
+                                    />
+                                    {seriesItems.map((item, index) => {
+                                        const colorIndex = getSeriesColorIndex(item, index);
+                                        const colorObj = activePalette[colorIndex % activePalette.length];
+                                        const displayName = getSeriesDisplayName(item);
+                                        return (
+                                            <Bar
+                                                key={item}
+                                                dataKey={displayName}
+                                                fill={colorObj.bg}
+                                                radius={[0, 4, 4, 0]}
+                                                barSize={20}
+                                                label={showDataLabels ? { position: 'right', formatter: (val: any) => Number(val).toFixed(1), fill: '#6b7280', fontSize: 14 } : false}
+                                            />
+                                        );
+                                    })}
+                                </BarChart>
+                            ) : (
+                                <BarChart key={seriesItems.join(',')} data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: isBrandImageMode ? 140 : 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        interval={isBrandImageMode ? 0 : 'preserveStartEnd'}
+                                        tick={{
+                                            fill: '#6b7280',
+                                            fontSize: isBrandImageMode ? 10 : 12,
+                                            angle: isBrandImageMode ? -90 : 0,
+                                            textAnchor: isBrandImageMode ? 'end' : 'middle'
+                                        }}
+                                        dy={10}
+                                        height={isBrandImageMode ? 140 : 30}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9ca3af', fontSize: 11 }}
+                                        domain={yAxisDomain}
+                                    />
+                                    <Tooltip
+                                        itemSorter={tooltipItemSorter}
+                                        formatter={(value: number) => Number(value).toFixed(1)}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        cursor={{ fill: '#f9fafb' }}
+                                    />
+                                    {seriesItems.map((item, index) => {
+                                        const colorIndex = getSeriesColorIndex(item, index);
+                                        const colorObj = activePalette[colorIndex % activePalette.length];
+                                        const displayName = getSeriesDisplayName(item);
+                                        return (
+                                            <Bar
+                                                key={item}
+                                                dataKey={displayName}
+                                                fill={colorObj.bg}
+                                                radius={[4, 4, 0, 0]}
+                                                label={showDataLabels ? (props: any) => {
+                                                    const { x, y, width, value } = props;
+                                                    return (
+                                                        <text x={x + width / 2} y={y} dy={-6} fill="#6b7280" fontSize={14} textAnchor="middle">
+                                                            {Number(value).toFixed(1)}
+                                                        </text>
+                                                    );
+                                                } : false}
+                                            />
+                                        );
+                                    })}
+                                </BarChart>
+                            )}
+                        </ResponsiveContainer>
                     )}
                 </div>
                 {/* Legend Section - Positioned Below Chart */}
@@ -697,7 +698,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                     return activeDataSources.map((ds, dsIndex) => {
                                         const colorIndex = dsIndex % activePalette.length;
                                         const color = activePalette[colorIndex].hex;
-                                        
+
                                         return (
                                             <tr key={ds.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="py-4 px-6 font-medium text-gray-700 flex items-center gap-3">
@@ -756,7 +757,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                         return selectedSegments.map((seg, segIndex) => {
                                             const colorIndex = segmentColorIndices[seg] ?? segIndex;
                                             const color = activePalette[colorIndex % activePalette.length].hex;
-                                            const displayName = seg.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim();
+                                            const displayName = formatSegmentName(seg, isAnonymized, segIndex);
 
                                             return (
                                                 <tr key={seg} className="hover:bg-gray-50/50 transition-colors">
@@ -779,7 +780,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                 } else if (xAxis === 'brands') {
                                     // Mode 3, 6: Segment (rows) × Brand (columns) cross table
                                     return selectedSegments.map((seg, segIndex) => {
-                                        const displaySegName = seg.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim();
+                                        const displaySegName = formatSegmentName(seg, isAnonymized, segIndex);
                                         const colorIndex = segmentColorIndices[seg] ?? segIndex;
                                         const color = activePalette[colorIndex % activePalette.length].hex;
 
@@ -831,7 +832,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                                     } else {
                                                         value = dataRow[key as keyof AllMetrics];
                                                     }
-                                                    
+
                                                     return (
                                                         <td key={key} className="py-4 px-6 text-center text-gray-600">
                                                             {value !== undefined ? Number(value).toFixed(1) : '-'}
@@ -848,12 +849,12 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                     {(() => {
                         const config = currentModeConfigs[analysisMode];
                         if (!config) return null;
-                        
+
                         // 過去比較モードの場合は、chartDataの有無で判定
                         if (globalMode === 'historical') {
                             // chartDataが存在すれば警告を表示しない
                             if (chartData && chartData.length > 0) return null;
-                            
+
                             // データソースがない場合の警告
                             if (dataSources.length === 0) {
                                 return (
@@ -864,7 +865,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                             }
                             return null;
                         }
-                        
+
                         // 詳細分析モードの場合（既存ロジック）
                         const xAxis = config.dataTransform.xAxis;
                         const seriesAxis = config.dataTransform.series;
