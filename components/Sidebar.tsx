@@ -204,7 +204,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     // Hidden command: Shift+double-click on title to load sample_202506.xlsx
     // 過去比較モード時はCtrl+Shift+double-clickで3つのサンプルファイルを自動読み込み
+    // Ctrl+Shift+double-clickでデバッグモードをトグル（両モード共通）
     const handleTitleDoubleClick = async (e: React.MouseEvent) => {
+        // Ctrl+Shift+double-click: デバッグモードトグル（優先度最高）
+        if (e.ctrlKey && e.shiftKey) {
+            e.stopPropagation();
+
+            // useAISettingsからtoggleDebugModeを取得する必要があるため、
+            // ここではlocalStorageを直接操作
+            const currentDebugMode = localStorage.getItem('ai_summary_debug_mode') === 'true';
+            const newDebugMode = !currentDebugMode;
+            localStorage.setItem('ai_summary_debug_mode', newDebugMode.toString());
+
+            // 他のコンポーネントに通知
+            window.dispatchEvent(new Event('ai_settings_changed'));
+
+            console.log(`[Debug Mode] ${newDebugMode ? 'ON' : 'OFF'}`);
+            alert(`デバッグモード: ${newDebugMode ? 'ON' : 'OFF'}`);
+            return;
+        }
+
         if (e.shiftKey) {
             e.stopPropagation(); // Prevent the anonymization toggle
 
@@ -257,7 +276,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             console.warn(`⚠ 読み込み失敗: ${failedFiles.join(', ')}`);
                         }
                     } else {
-                        alert('サンプルファイルの読み込みに失敗しました。\nファイルが存在するか確認してください。');
+                        alert('サンプルファイルの読み込みに失敗しました。\\nファイルが存在するか確認してください。');
                     }
                 } catch (error) {
                     console.error('サンプルファイルの読み込みに失敗:', error);
@@ -425,8 +444,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : dataSources.length === 0
                             }
                             className={`w-full p-2.5 pr-8 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none ${(globalMode === 'detailed' && !isExcelData) || (globalMode === 'historical' && dataSources.length === 0)
-                                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white border-gray-200 cursor-pointer'
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-white border-gray-200 cursor-pointer'
                                 }`}
                         >
                             {currentModeOrder.map((modeId, index) => (

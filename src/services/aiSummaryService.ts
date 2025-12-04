@@ -31,6 +31,7 @@ export interface AISettings {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  isDebugMode?: boolean; // デバッグモードフラグ
 }
 
 // 利用可能なGeminiモデル（2025年11月時点の最新情報）
@@ -178,12 +179,17 @@ function replacePromptVariables(
     context.selectedSegments || []
   );
 
+  // 分析項目のラベルを取得（コードではなく人間が読める形式）
+  const itemLabel = context.selectedItem
+    ? (metadata.itemLabels[context.selectedItem] || context.selectedItem)
+    : '未選択';
+
   let result = prompt
     .replace(/\{\{globalMode\}\}/g, globalModeLabel)
     .replace(/\{\{analysisMode\}\}/g, context.analysisMode)
     .replace(/\{\{segments\}\}/g, segmentsStr)
     .replace(/\{\{selectedBrands\}\}/g, maskedBrands.join(', '))
-    .replace(/\{\{selectedItem\}\}/g, context.selectedItem)
+    .replace(/\{\{selectedItem\}\}/g, itemLabel)  // ← ラベルを使用
     .replace(/\{\{chartData\}\}/g, chartDataStr)
     .replace(/\{\{comparisonInstruction\}\}/g, comparisonInstruction);
 
@@ -197,7 +203,7 @@ function replacePromptVariables(
     analysisMode: context.analysisMode,
     segments: segmentsStr,
     selectedBrands: maskedBrands.join(', '),
-    selectedItem: context.selectedItem,
+    selectedItem: itemLabel,  // ← ラベルを表示
   });
   console.log('[AI Summary] Prompt after replacement (first 800 chars):', result.slice(0, 800));
   console.log('[AI Summary] Checking for unreplaced variables:');

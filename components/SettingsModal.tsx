@@ -9,7 +9,7 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { settings, saveSettings } = useAISettings();
+  const { settings, saveSettings, toggleDebugMode, getEffectiveApiKey } = useAISettings();
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [model, setModel] = useState(settings.model || DEFAULT_MODEL);
   const [maxTokens, setMaxTokens] = useState(settings.maxTokens || 10000);
@@ -21,13 +21,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   // モーダルが開いたときに設定を読み込む
   useEffect(() => {
     if (isOpen) {
-      setApiKey(settings.apiKey);
+      // デバッグモードでカスタムAPIキーが未設定の場合は空欄表示
+      // （デフォルトAPIキーは表示しない）
+      const displayApiKey = settings.isDebugMode && !settings.apiKey.trim()
+        ? ''
+        : settings.apiKey;
+
+      setApiKey(displayApiKey);
       setModel(settings.model || DEFAULT_MODEL);
       setMaxTokens(settings.maxTokens || 10000);
       setTemperature(settings.temperature || 0.1);
       setTestResult(null);
     }
   }, [isOpen, settings]);
+
+  // ESCキーでモーダルを閉じる
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -95,9 +115,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   type={showApiKey ? 'text' : 'password'}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="APIキーを入力してください"
+                  placeholder="カスタムAPIキーを入力（任意）"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {apiKey.trim()
+                    ? 'カスタムAPIキーが設定されています'
+                    : settings.isDebugMode
+                      ? 'デバッグモード: デフォルトAPIキーを使用中'
+                      : 'APIキーが未設定です。AIサマリー機能は利用できません'
+                  }
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
@@ -217,20 +245,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            保存
-          </button>
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
+          {/* DEBUG Mode Indicator (text-only, shown only when ON) */}
+          {settings.isDebugMode && (
+            <div className="mb-4 text-xs font-bold text-indigo-600 uppercase tracking-wider">
+              DEBUGモード
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              キャンセル
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              保存
+            </button>
+          </div>
         </div>
       </div>
     </div>

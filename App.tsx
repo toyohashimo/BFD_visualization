@@ -177,6 +177,74 @@ const App: React.FC = () => {
     }
   }, [analysisMode, chartConfig.setChartType, currentModeConfigs]);
 
+  // モード切り替え時のデフォルト選択設定
+  useEffect(() => {
+    if (!hasValidData || !analysisMode) return;
+
+    const config = currentModeConfigs[analysisMode];
+    if (!config || !config.axes) return;
+
+    // ブランドのデフォルト選択
+    if (config.axes.brands) {
+      const brandsRole = config.axes.brands.role;
+      const allowMulti = config.axes.brands.allowMultiple !== false;
+
+      // 利用可能なブランドリストを取得
+      const availableBrands = Object.keys(data[sheet] || {});
+
+      if (brandsRole === 'FILTER') {
+        // FILTER役割: targetBrandが空ならデフォルト設定
+        if (!targetBrand && availableBrands.length > 0) {
+          setTargetBrand(availableBrands[0]);
+        }
+      } else {
+        // SERIES/X_AXIS役割: selectedBrandsが空ならデフォルト設定
+        if (selectedBrands.length === 0 && availableBrands.length > 0) {
+          if (allowMulti) {
+            // 複数選択可能: 1～3番目のブランド
+            setSelectedBrands(availableBrands.slice(0, Math.min(3, availableBrands.length)));
+          } else {
+            // 単一選択のみ: 1番目のブランド
+            setSelectedBrands([availableBrands[0]]);
+          }
+        }
+      }
+    }
+
+    // セグメントのデフォルト選択
+    if (config.axes.segments) {
+      const segmentsRole = config.axes.segments.role;
+      const allowMulti = config.axes.segments.allowMultiple !== false;
+
+      // 利用可能なセグメントリストを取得
+      const availableSegments = Object.keys(data);
+      const defaultSegments = [
+        availableSegments.find(s => s.includes('全体')) || availableSegments[0],
+        availableSegments.find(s => s.includes('男性')),
+        availableSegments.find(s => s.includes('女性'))
+      ].filter(Boolean) as string[];
+
+      if (segmentsRole === 'FILTER') {
+        // FILTER役割: sheetが空ならデフォルト設定
+        if (!sheet && defaultSegments.length > 0) {
+          setSheet(defaultSegments[0]); // 「全体」を優先
+        }
+      } else {
+        // SERIES/X_AXIS役割: selectedSegmentsが空ならデフォルト設定
+        if (selectedSegments.length === 0 && defaultSegments.length > 0) {
+          if (allowMulti) {
+            // 複数選択可能: 全体、男性、女性
+            setSelectedSegments(defaultSegments);
+          } else {
+            // 単一選択のみ: 全体
+            setSelectedSegments([defaultSegments[0]]);
+          }
+        }
+      }
+    }
+  }, [analysisMode, hasValidData, data, sheet, targetBrand, selectedBrands, selectedSegments,
+    setTargetBrand, setSelectedBrands, setSheet, setSelectedSegments, currentModeConfigs]);
+
   // 色マッピング
   const { brandColorIndices, segmentColorIndices } = useColorMapping(
     selectedBrands,
@@ -192,13 +260,16 @@ const App: React.FC = () => {
   );
 
   // AI設定管理（デバッグモード用）
-  const { saveSettings } = useAISettings();
+  const { settings, saveSettings, toggleDebugMode, getEffectiveApiKey } = useAISettings();
 
   // デバッグモード: APIキー自動設定（開発環境のみ）
   const handleSetDebugApiKey = useCallback((apiKey: string) => {
-    saveSettings({ apiKey });
-    console.log('[App] Debug API key configured via IconBar');
-  }, [saveSettings]);
+    // setTimeoutで次のティックに遅延させて、レンダリング中のstate更新を回避
+    setTimeout(() => {
+      saveSettings({ ...settings, apiKey });
+      console.log('[App] Debug API key configured via IconBar');
+    }, 0);
+  }, [settings, saveSettings]);
 
   // UI状態
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -650,6 +721,8 @@ const App: React.FC = () => {
           setSidebarCollapsed={setSidebarCollapsed}
           onOpenSettings={() => setShowSettingsModal(true)}
           onSetDebugApiKey={handleSetDebugApiKey}
+          isDebugMode={settings.isDebugMode}
+          onToggleDebugMode={toggleDebugMode}
         />
       </div>
 
@@ -815,11 +888,31 @@ const App: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSettingsModal(true)}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-            title="設定"
+            onDoubleClick={(e) => {
+              if (e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // デバッグモードをトグル（localStorageを直接操作）
+                const currentDebugMode = localStorage.getItem('ai_summary_debug_mode') === 'true';
+                const newDebugMode = !currentDebugMode;
+                localStorage.setItem('ai_summary_debug_mode', newDebugMode.toString());
+
+                // 他のコンポーネントに通知
+                window.dispatchEvent(new Event('ai_settings_changed'));
+
+                console.log(`[Debug Mode] ${newDebugMode ? 'ON' : 'OFF'}`);
+                alert(`デバッグモード: ${newDebugMode ? 'ON' : 'OFF'}`);
+              }
+            }}
+            className={`p-2 rounded-lg transition-all ${getEffectiveApiKey()
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            title={settings.apiKey ? "設定（カスタムAPIキー）" : settings.isDebugMode ? "設定（DEBUGモード）" : "設定"}
             aria-label="設定"
           >
-            <Settings className="w-6 h-6" />
+            <Settings className={`w-6 h-6 transition-transform ${getEffectiveApiKey() ? 'rotate-180' : ''}`} />
           </button>
           <button onClick={() => setShowMobileMenu(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
             <Menu className="w-6 h-6" />
@@ -904,6 +997,7 @@ const App: React.FC = () => {
               selectedItem={selectedItem}
               yAxisMax={chartConfig.yAxisMax}
               isAnonymized={chartConfig.isAnonymized}
+              isDebugMode={settings.isDebugMode}
             />
           )}
         </div>

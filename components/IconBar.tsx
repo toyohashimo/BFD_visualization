@@ -19,7 +19,9 @@ interface IconBarProps {
     sidebarCollapsed: boolean;
     setSidebarCollapsed: (collapsed: boolean) => void;
     onOpenSettings: () => void;
-    onSetDebugApiKey?: (apiKey: string) => void; // デバッグモード用
+    onSetDebugApiKey?: (apiKey: string) => void; // デバッグモード用（非推奨、後方互換性のため残す）
+    onToggleDebugMode?: () => void; // デバッグモードトグル
+    isDebugMode?: boolean; // デバッグモード有効判定
 }
 
 export const IconBar: React.FC<IconBarProps> = ({
@@ -29,7 +31,9 @@ export const IconBar: React.FC<IconBarProps> = ({
     sidebarCollapsed,
     setSidebarCollapsed,
     onOpenSettings,
-    onSetDebugApiKey
+    onSetDebugApiKey,
+    onToggleDebugMode,
+    isDebugMode = false, // デフォルトはfalse
 }) => {
     const chartTypes: Array<{ type: ChartType; icon: React.ReactNode; label: string }> = [
         { type: 'bar', icon: <BarChart2 className="w-5 h-5" />, label: '集合縦棒' },
@@ -43,7 +47,7 @@ export const IconBar: React.FC<IconBarProps> = ({
         { target: 'combined', icon: <ImageIcon className="w-5 h-5" />, label: 'グラフ＋データ' }
     ];
 
-    // デバッグモード: Shift+ダブルクリックでAPIキー自動設定（開発環境のみ）
+    // デバッグモード: Shift+ダブルクリックでデバッグモードをトグル（開発環境のみ）
     const handleDebugClick = (e: React.MouseEvent) => {
         if (!e.shiftKey) return;
 
@@ -53,12 +57,12 @@ export const IconBar: React.FC<IconBarProps> = ({
             return;
         }
 
-        const debugApiKey = import.meta.env.VITE_DEBUG_GEMINI_API_KEY;
-        if (debugApiKey && onSetDebugApiKey) {
-            onSetDebugApiKey(debugApiKey);
-            console.log('[Debug Mode] API Key auto-configured');
-        } else if (!debugApiKey) {
-            console.warn('[Debug Mode] VITE_DEBUG_GEMINI_API_KEY not found in environment variables');
+        // デバッグモードをトグル
+        if (onToggleDebugMode) {
+            onToggleDebugMode();
+            console.log('[Debug Mode] Toggled:', !isDebugMode ? 'ON' : 'OFF');
+        } else {
+            console.warn('[Debug Mode] onToggleDebugMode callback not provided');
         }
     };
 
@@ -125,13 +129,16 @@ export const IconBar: React.FC<IconBarProps> = ({
             {/* Settings Button - Bottom */}
             <button
                 onClick={onOpenSettings}
-                className="p-3 rounded-lg hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-all group relative"
-                title="設定"
+                className={`p-3 rounded-lg transition-all group relative ${isDebugMode
+                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
+                    : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
+                    }`}
+                title={isDebugMode ? "設定（デバッグモード有効）" : "設定"}
             >
-                <Settings className="w-5 h-5" />
+                <Settings className={`w-5 h-5 transition-transform ${isDebugMode ? 'rotate-180' : ''}`} />
                 {/* Tooltip */}
                 <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                    設定
+                    {isDebugMode ? "設定（デバッグモード有効）" : "設定"}
                 </span>
             </button>
 

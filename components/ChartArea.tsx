@@ -48,6 +48,7 @@ interface ChartAreaProps {
     selectedItem: keyof FunnelMetrics | keyof TimelineMetrics;
     yAxisMax: number | '';
     isAnonymized: boolean; // DEMOモード判定用
+    isDebugMode?: boolean; // デバッグモード判定用（APIキー設定済み）
 }
 
 export const ChartArea: React.FC<ChartAreaProps> = ({
@@ -71,7 +72,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
     data,
     selectedItem,
     yAxisMax,
-    isAnonymized
+    isAnonymized,
+    isDebugMode = false, // デフォルトはfalse
 }) => {
     // データがない場合は早期リターン
     if (!chartData || chartData.length === 0) {
@@ -365,8 +367,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         <div ref={combinedRef} className="w-full px-0 md:px-4 space-y-6 bg-white">
             {/* Chart Section */}
             <div ref={chartRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 relative">
-                {/* AIサマリーボタン（右上に配置） */}
-                {chartData.length > 0 && (
+                {/* AIサマリーボタン（右上に配置、デバッグモード時のみ） */}
+                {chartData.length > 0 && isDebugMode && (
                     <AISummaryButton
                         onClick={generateSummary}
                         isLoading={isLoading}
