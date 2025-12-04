@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ChartDataPoint } from '../types';
 import { formatSegmentName } from '../utils/formatters';
+import { MODE_PROMPTS } from './modePrompts';
+import { getComparisonInstruction } from './comparisonInstructions';
 import { GLOBAL_MODE_LABELS } from '../types/globalMode';
 
 export interface AISummaryRequest {
@@ -164,20 +166,12 @@ function replacePromptVariables(
   // チャートデータを読みやすい形式に変換
   const chartDataStr = JSON.stringify(maskedChartData, null, 2);
 
-  // 複数ブランドの場合の比較指示を生成
-  let comparisonInstruction = '';
-  if (maskedBrands.length > 1) {
-    const firstBrand = maskedBrands[0];
-    const otherBrands = maskedBrands.slice(1);
-    comparisonInstruction = `【重要：複数ブランド比較分析】
-複数ブランドが含まれています。以下の点に注意して分析してください：
-- **${firstBrand}を基準ブランドとして設定**し、他のブランド（${otherBrands.join('、')}）との比較分析を行ってください
-- ${firstBrand}の各指標の値を基準として、他のブランドがどの程度高い/低いかを明確に示してください
-- ブランド間の差が大きいポイントや特徴的な違いを重点的に指摘してください
-- 比較結果は簡潔にまとめてください
-
-`;
-  }
+  // モード別の比較指示を取得
+  const comparisonInstruction = getComparisonInstruction(
+    context.analysisMode,
+    maskedBrands,
+    context.selectedSegments || []
+  );
 
   let result = prompt
     .replace(/\{\{globalMode\}\}/g, globalModeLabel)
@@ -218,8 +212,12 @@ export async function generateAISummary(
       },
     });
 
-    // プロンプトを構築
-    const prompt = replacePromptVariables(settings.prompt || DEFAULT_PROMPT, request);
+    // モード別プロンプトを取得（フォールバックとしてDEFAULT_PROMPTを使用）
+    const modePrompt = MODE_PROMPTS[request.context.analysisMode] || DEFAULT_PROMPT;
+
+    // プロンプトを構築（settingsのプロンプトが設定されていればそれを優先）
+    const basePrompt = settings.prompt || modePrompt;
+    const prompt = replacePromptVariables(basePrompt, request);
 
     // リクエスト情報をコンソールに出力
     const actualMaxTokens = settings.maxTokens || 10000;
