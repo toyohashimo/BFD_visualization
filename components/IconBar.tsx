@@ -47,15 +47,9 @@ export const IconBar: React.FC<IconBarProps> = ({
         { target: 'combined', icon: <ImageIcon className="w-5 h-5" />, label: 'グラフ＋データ' }
     ];
 
-    // デバッグモード: Shift+ダブルクリックでデバッグモードをトグル（開発環境のみ）
+    // デバッグモード: Shift+ダブルクリックでデバッグモードをトグル
     const handleDebugClick = (e: React.MouseEvent) => {
         if (!e.shiftKey) return;
-
-        // 開発環境でのみデバッグモード有効
-        if (!import.meta.env.DEV) {
-            console.warn('[Debug Mode] Only available in development');
-            return;
-        }
 
         // デバッグモードをトグル
         if (onToggleDebugMode) {
@@ -142,7 +136,7 @@ export const IconBar: React.FC<IconBarProps> = ({
                 </span>
             </button>
 
-            {/* デバッグモード隠しエリア（Shift+ダブルクリック、開発環境のみ） */}
+            {/* デバッグモード隠しエリア（Shift+ダブルクリック） */}
             <div
                 onDoubleClick={handleDebugClick}
                 className="w-full h-8 cursor-default"
