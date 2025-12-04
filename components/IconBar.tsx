@@ -146,7 +146,7 @@ export const IconBar: React.FC<IconBarProps> = ({
             <div
                 onDoubleClick={handleDebugClick}
                 className="w-full h-8 cursor-default"
-                title={import.meta.env.DEV ? "Shift+ダブルクリックでデバッグモード" : ""}
+                title=""
             />
         </div>
     );

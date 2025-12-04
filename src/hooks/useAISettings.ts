@@ -141,6 +141,11 @@ export const useAISettings = () => {
   // デバッグモードトグル
   const toggleDebugMode = useCallback(() => {
     saveSettings({ isDebugMode: !settings.isDebugMode });
+
+    // 環境変数（デフォルトAPIキー）を反映させるためにページをリロード
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   }, [settings.isDebugMode, saveSettings]);
 
   // 実際に使用するAPIキーを取得（優先度ロジック）

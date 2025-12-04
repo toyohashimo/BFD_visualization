@@ -902,7 +902,11 @@ const App: React.FC = () => {
                 window.dispatchEvent(new Event('ai_settings_changed'));
 
                 console.log(`[Debug Mode] ${newDebugMode ? 'ON' : 'OFF'}`);
-                alert(`デバッグモード: ${newDebugMode ? 'ON' : 'OFF'}`);
+
+                // 環境変数（デフォルトAPIキー）を反映させるためにページをリロード
+                setTimeout(() => {
+                  window.location.reload();
+                }, 100);
               }
             }}
             className={`p-2 rounded-lg transition-all ${getEffectiveApiKey()

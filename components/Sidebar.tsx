@@ -203,27 +203,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         : ANALYSIS_MODE_ORDER;
 
     // Hidden command: Shift+double-click on title to load sample_202506.xlsx
-    // 過去比較モード時はCtrl+Shift+double-clickで3つのサンプルファイルを自動読み込み
-    // Ctrl+Shift+double-clickでデバッグモードをトグル（両モード共通）
+    // 過去比較モード時はShift+double-clickで3つのサンプルファイルを自動読み込み
     const handleTitleDoubleClick = async (e: React.MouseEvent) => {
-        // Ctrl+Shift+double-click: デバッグモードトグル（優先度最高）
-        if (e.ctrlKey && e.shiftKey) {
-            e.stopPropagation();
-
-            // useAISettingsからtoggleDebugModeを取得する必要があるため、
-            // ここではlocalStorageを直接操作
-            const currentDebugMode = localStorage.getItem('ai_summary_debug_mode') === 'true';
-            const newDebugMode = !currentDebugMode;
-            localStorage.setItem('ai_summary_debug_mode', newDebugMode.toString());
-
-            // 他のコンポーネントに通知
-            window.dispatchEvent(new Event('ai_settings_changed'));
-
-            console.log(`[Debug Mode] ${newDebugMode ? 'ON' : 'OFF'}`);
-            alert(`デバッグモード: ${newDebugMode ? 'ON' : 'OFF'}`);
-            return;
-        }
-
         if (e.shiftKey) {
             e.stopPropagation(); // Prevent the anonymization toggle
 

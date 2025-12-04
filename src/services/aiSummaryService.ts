@@ -223,15 +223,16 @@ function replacePromptVariables(
  */
 export async function generateAISummary(
   request: AISummaryRequest,
-  settings: AISettings
+  settings: AISettings,
+  effectiveApiKey: string
 ): Promise<string> {
-  if (!settings.apiKey) {
+  if (!effectiveApiKey) {
     throw new Error('Gemini APIキーが設定されていません。設定画面からAPIキーを入力してください。');
   }
 
   try {
     // Gemini APIクライアントを初期化
-    const genAI = new GoogleGenerativeAI(settings.apiKey);
+    const genAI = new GoogleGenerativeAI(effectiveApiKey);
     const modelName = settings.model || DEFAULT_MODEL;
     const model = genAI.getGenerativeModel({
       model: modelName,

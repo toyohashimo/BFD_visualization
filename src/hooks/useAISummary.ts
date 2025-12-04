@@ -40,18 +40,19 @@ export const useAISummary = (
   const [summary, setSummary] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { settings } = useAISettings();
+  const { settings, getEffectiveApiKey } = useAISettings();
 
   const generateSummary = useCallback(async () => {
     console.log('=== useAISummary: サマリー生成開始 ===');
-    
+
     if (!chartData || chartData.length === 0) {
       console.warn('useAISummary: チャートデータがありません');
       setError('チャートデータがありません。');
       return;
     }
 
-    if (!settings.apiKey) {
+    const effectiveApiKey = getEffectiveApiKey();
+    if (!effectiveApiKey) {
       console.warn('useAISummary: APIキーが設定されていません');
       setError('Gemini APIキーが設定されていません。設定画面からAPIキーを入力してください。');
       return;
@@ -73,13 +74,13 @@ export const useAISummary = (
         metadata,
       });
 
-      const result = await generateAISummary(request, settings);
-      
+      const result = await generateAISummary(request, settings, effectiveApiKey);
+
       console.log('useAISummary: サマリー生成成功', {
         summaryLength: result.length,
         summaryPreview: result.substring(0, 100) + '...',
       });
-      
+
       setSummary(result);
     } catch (err: any) {
       console.error('useAISummary: サマリー生成エラー', err);
@@ -89,7 +90,7 @@ export const useAISummary = (
       setIsLoading(false);
       console.log('=== useAISummary: サマリー生成完了 ===');
     }
-  }, [chartData, context, metadata, settings]);
+  }, [chartData, context, metadata, settings, getEffectiveApiKey]);
 
   const clearSummary = useCallback(() => {
     setSummary(null);

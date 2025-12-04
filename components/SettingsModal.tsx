@@ -92,7 +92,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">AIサマリー設定</h2>
+          <h2 className="text-2xl font-bold text-gray-800">設定</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -222,7 +222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   max={4000}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 />
-                <p className="text-xs text-gray-500">100-4000の範囲で設定</p>
+                <p className="text-xs text-gray-500">1000-20000の範囲で設定</p>
               </div>
 
               <div className="space-y-2">

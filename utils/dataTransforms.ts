@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { DataSource } from '../src/types/dataSource';
 import { findMatchingBrand } from '../src/utils/brandNormalizer';
+import { BRAND_IMAGE } from '../src/config/constants';
 
 // Brand Image Data type
 type BrandImageData = Record<string, Record<string, Record<string, number>>>;
@@ -133,8 +134,9 @@ const selectTop30BrandImageItems = (
     const brandData = sheetData[referenceBrand];
     if (!brandData) return [];
 
-    // Convert to array and sort by value descending
+    // Convert to array, filter out excluded keywords, then sort by value descending
     const items = Object.entries(brandData)
+        .filter(([name]) => !BRAND_IMAGE.EXCLUDE_KEYWORDS.some((keyword: string) => name.includes(keyword)))
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 
