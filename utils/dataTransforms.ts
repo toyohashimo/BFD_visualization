@@ -9,9 +9,9 @@ import {
     AllMetrics,
     AnalysisModeConfig,
     AxisType,
-    BrandImageItem,
-    DataSource
+    BrandImageItem
 } from '../types';
+import { DataSource } from '../src/types/dataSource';
 import { findMatchingBrand } from '../src/utils/brandNormalizer';
 
 // Brand Image Data type
@@ -25,27 +25,27 @@ type BrandImageData = Record<string, Record<string, Record<string, number>>>;
  * @returns ブランドデータ（見つからない場合はundefined）
  */
 function getBrandDataWithFuzzyMatch(
-  segmentData: Record<string, any>,
-  brandName: string
+    segmentData: Record<string, any>,
+    brandName: string
 ): any | undefined {
-  if (!segmentData || !brandName) {
+    if (!segmentData || !brandName) {
+        return undefined;
+    }
+
+    // 完全一致を試す
+    if (segmentData[brandName]) {
+        return segmentData[brandName];
+    }
+
+    // ファジーマッチングで検索
+    const brandList = Object.keys(segmentData);
+    const matchedBrand = findMatchingBrand(brandName, brandList);
+
+    if (matchedBrand) {
+        return segmentData[matchedBrand];
+    }
+
     return undefined;
-  }
-
-  // 完全一致を試す
-  if (segmentData[brandName]) {
-    return segmentData[brandName];
-  }
-
-  // ファジーマッチングで検索
-  const brandList = Object.keys(segmentData);
-  const matchedBrand = findMatchingBrand(brandName, brandList);
-  
-  if (matchedBrand) {
-    return segmentData[matchedBrand];
-  }
-
-  return undefined;
 }
 
 /**
@@ -168,7 +168,7 @@ export const transformDataForChart = (
             } else {
                 xAxisItems = [];
             }
-        } else if (modeConfig.id === 'brand_analysis_segment_comparison') {
+        } else if (modeConfig.id === 'brand_image_brand_segments') {
             // Mode 8: Brand filter, Segment series
             const brand = filterValues.brands;
             const referenceSegment = seriesValues.segments[0]; // First selected segment is reference
@@ -205,7 +205,7 @@ export const transformDataForChart = (
                     if (sheetData && sheetData[seriesItem]) {
                         value = sheetData[seriesItem][xItem];
                     }
-                } else if (modeConfig.id === 'brand_analysis_segment_comparison') {
+                } else if (modeConfig.id === 'brand_image_brand_segments') {
                     // Mode 8: Brand filter, Segment series
                     const brand = filterValues.brands;
                     const sheetData = brandImageData[seriesItem]; // seriesItem is segment name
@@ -364,68 +364,68 @@ export const transformDataForHistoricalBrandImage = (
     labelGetters: Record<AxisType, (key: string) => string>,
     brandImageData?: BrandImageData
 ): ChartDataPoint[] | null => {
-    
+
     // 1. アクティブなデータソースをフィルタ
     const activeSources = dataSources.filter(ds => ds.isActive);
     if (activeSources.length === 0) {
         console.warn('[Historical Brand Image] アクティブなデータソースがありません');
         return null;
     }
-    
+
     // 2. セグメント・ブランドのバリデーション
     if (!selectedSegment || !selectedBrand) {
         console.warn('[Historical Brand Image] セグメントまたはブランドが選択されていません');
         return null;
     }
-    
+
     // 3. 基準データソース（先頭）からTOP30項目を選定
     const referenceSource = activeSources[0];
     const referenceBrandImageData = referenceSource.brandImageData || brandImageData;
-    
+
     if (!referenceBrandImageData) {
         console.warn('[Historical Brand Image] ブランドイメージデータが見つかりません');
         return null;
     }
-    
+
     const segmentData = referenceBrandImageData[selectedSegment];
     if (!segmentData) {
         console.warn(`[Historical Brand Image] セグメント '${selectedSegment}' が見つかりません`);
         return null;
     }
-    
+
     // ファジーマッチングを使用してブランドデータを取得
     const brandList = Object.keys(segmentData);
     const matchedBrand = findMatchingBrand(selectedBrand, brandList);
-    
+
     if (!matchedBrand) {
         console.warn(`[Historical Brand Image] ブランド '${selectedBrand}' が見つかりません`);
         return null;
     }
-    
+
     const brandData = segmentData[matchedBrand];
     if (!brandData) {
         console.warn(`[Historical Brand Image] ブランド '${matchedBrand}' のデータが見つかりません`);
         return null;
     }
-    
+
     // 4. TOP30項目の選定
     const top30Items = Object.entries(brandData)
         .filter(([itemName]) => itemName !== 'あてはまるものはない')
         .sort((a, b) => b[1] - a[1])  // 降順ソート
         .slice(0, 30)
         .map(entry => entry[0]);
-    
+
     if (top30Items.length === 0) {
         console.warn('[Historical Brand Image] TOP30項目が選定できませんでした');
         return null;
     }
-    
+
     // 5. 各項目ごとにデータポイントを生成
     const chartData: ChartDataPoint[] = top30Items.map(itemName => {
         const dataPoint: ChartDataPoint = {
             name: itemName  // X軸のラベル
         };
-        
+
         // 6. 各データソースの値を取得
         activeSources.forEach(source => {
             const sourceBrandImageData = source.brandImageData || brandImageData;
@@ -433,28 +433,28 @@ export const transformDataForHistoricalBrandImage = (
                 dataPoint[source.name] = 0;
                 return;
             }
-            
+
             const sourceSegmentData = sourceBrandImageData[selectedSegment];
             if (!sourceSegmentData) {
                 dataPoint[source.name] = 0;
                 return;
             }
-            
+
             // ファジーマッチングを使用してブランドデータを取得
             const sourceBrandData = getBrandDataWithFuzzyMatch(sourceSegmentData, selectedBrand);
             if (!sourceBrandData) {
                 dataPoint[source.name] = 0;
                 return;
             }
-            
+
             // 項目の値を取得（存在しない場合は0）
             const value = sourceBrandData[itemName] ?? 0;
             dataPoint[source.name] = value;
         });
-        
+
         return dataPoint;
     });
-    
+
     return chartData;
 };
 
@@ -478,7 +478,7 @@ export const transformDataForHistoricalBrandsComparison = (
     selectedItem: string,
     labelGetters: Record<AxisType, (key: string) => string>
 ): ChartDataPoint[] | null => {
-    
+
     // 1. アクティブなデータソースをフィルタ
     const activeSources = dataSources.filter(ds => ds.isActive);
     if (activeSources.length === 0) {
@@ -491,12 +491,12 @@ export const transformDataForHistoricalBrandsComparison = (
         console.warn('[Historical Mode 2] セグメントが選択されていません');
         return null;
     }
-    
+
     if (!selectedItem) {
         console.warn('[Historical Mode 2] ファネル項目が選択されていません');
         return null;
     }
-    
+
     if (!selectedBrands || selectedBrands.length === 0) {
         console.warn('[Historical Mode 2] ブランドが選択されていません');
         return null;
@@ -576,7 +576,7 @@ export const transformDataForHistoricalBrandImageBrandsComparison = (
     labelGetters: Record<AxisType, (key: string) => string>,
     brandImageData?: BrandImageData
 ): ChartDataPoint[] | null => {
-    
+
     // 1. アクティブなデータソースをフィルタ
     const activeSources = dataSources.filter(ds => ds.isActive);
     if (activeSources.length === 0) {
@@ -589,12 +589,12 @@ export const transformDataForHistoricalBrandImageBrandsComparison = (
         console.warn('[Historical Mode 6] セグメントが選択されていません');
         return null;
     }
-    
+
     if (!selectedItem) {
         console.warn('[Historical Mode 6] ブランドイメージ項目が選択されていません');
         return null;
     }
-    
+
     if (!selectedBrands || selectedBrands.length === 0) {
         console.warn('[Historical Mode 6] ブランドが選択されていません');
         return null;
