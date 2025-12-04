@@ -2,14 +2,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { AISettings, DEFAULT_MODEL, DEFAULT_PROMPT } from '../services/aiSummaryService';
 
 const STORAGE_KEY_API_KEY = 'ai_summary_api_key';
-const STORAGE_KEY_PROMPT = 'ai_summary_prompt';
 const STORAGE_KEY_MODEL = 'ai_summary_model';
 const STORAGE_KEY_MAX_TOKENS = 'ai_summary_max_tokens';
 const STORAGE_KEY_TEMPERATURE = 'ai_summary_temperature';
 
 const DEFAULT_SETTINGS: AISettings = {
   apiKey: '',
-  prompt: DEFAULT_PROMPT,
+  prompt: '', // 互換性のため空文字列を保持（使用されない）
   model: DEFAULT_MODEL,
   maxTokens: 10000, // デフォルトを10000に設定
   temperature: 0.1, // デフォルトを0.1に設定（より一貫性のある出力）
@@ -22,7 +21,6 @@ export const useAISettings = () => {
   const [settings, setSettings] = useState<AISettings>(() => {
     try {
       const apiKey = localStorage.getItem(STORAGE_KEY_API_KEY) || '';
-      const prompt = localStorage.getItem(STORAGE_KEY_PROMPT) || DEFAULT_PROMPT;
       const model = localStorage.getItem(STORAGE_KEY_MODEL) || DEFAULT_MODEL;
       let maxTokens = parseInt(localStorage.getItem(STORAGE_KEY_MAX_TOKENS) || '10000', 10);
       const temperature = parseFloat(localStorage.getItem(STORAGE_KEY_TEMPERATURE) || '0.1');
@@ -36,7 +34,7 @@ export const useAISettings = () => {
 
       return {
         apiKey,
-        prompt,
+        prompt: '', // 互換性のため空文字列を保持（使用されない）
         model,
         maxTokens: isNaN(maxTokens) ? 10000 : maxTokens,
         temperature: isNaN(temperature) ? 0.1 : temperature,
@@ -51,13 +49,10 @@ export const useAISettings = () => {
   const saveSettings = useCallback((newSettings: Partial<AISettings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings };
-      
+
       try {
         if (newSettings.apiKey !== undefined) {
           localStorage.setItem(STORAGE_KEY_API_KEY, updated.apiKey);
-        }
-        if (newSettings.prompt !== undefined) {
-          localStorage.setItem(STORAGE_KEY_PROMPT, updated.prompt);
         }
         if (newSettings.model !== undefined) {
           localStorage.setItem(STORAGE_KEY_MODEL, updated.model);
@@ -68,13 +63,13 @@ export const useAISettings = () => {
         if (newSettings.temperature !== undefined) {
           localStorage.setItem(STORAGE_KEY_TEMPERATURE, updated.temperature.toString());
         }
-        
+
         // 他のフックインスタンスに通知
         window.dispatchEvent(new Event('ai_settings_changed'));
       } catch (error) {
         console.error('Failed to save AI settings:', error);
       }
-      
+
       return updated;
     });
   }, []);
@@ -84,14 +79,13 @@ export const useAISettings = () => {
     const handleSettingsChange = () => {
       try {
         const apiKey = localStorage.getItem(STORAGE_KEY_API_KEY) || '';
-        const prompt = localStorage.getItem(STORAGE_KEY_PROMPT) || DEFAULT_PROMPT;
         const model = localStorage.getItem(STORAGE_KEY_MODEL) || DEFAULT_MODEL;
         let maxTokens = parseInt(localStorage.getItem(STORAGE_KEY_MAX_TOKENS) || '10000', 10);
         const temperature = parseFloat(localStorage.getItem(STORAGE_KEY_TEMPERATURE) || '0.1');
 
         setSettings({
           apiKey,
-          prompt,
+          prompt: '', // 互換性のため空文字列を保持（使用されない）
           model,
           maxTokens: isNaN(maxTokens) ? 10000 : maxTokens,
           temperature: isNaN(temperature) ? 0.1 : temperature,
@@ -110,7 +104,6 @@ export const useAISettings = () => {
   // デフォルトにリセット
   const resetToDefault = useCallback(() => {
     saveSettings({
-      prompt: DEFAULT_PROMPT,
       model: DEFAULT_MODEL,
       maxTokens: 10000, // デフォルトを10000に設定
       temperature: 0.1, // デフォルトを0.1に設定

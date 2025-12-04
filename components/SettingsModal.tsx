@@ -9,9 +9,8 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { settings, saveSettings, resetToDefault } = useAISettings();
+  const { settings, saveSettings } = useAISettings();
   const [apiKey, setApiKey] = useState(settings.apiKey);
-  const [prompt, setPrompt] = useState(settings.prompt);
   const [model, setModel] = useState(settings.model || DEFAULT_MODEL);
   const [maxTokens, setMaxTokens] = useState(settings.maxTokens || 10000);
   const [temperature, setTemperature] = useState(settings.temperature || 0.1);
@@ -23,7 +22,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (isOpen) {
       setApiKey(settings.apiKey);
-      setPrompt(settings.prompt);
       setModel(settings.model || DEFAULT_MODEL);
       setMaxTokens(settings.maxTokens || 10000);
       setTemperature(settings.temperature || 0.1);
@@ -36,23 +34,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const handleSave = () => {
     saveSettings({
       apiKey,
-      prompt,
       model,
       maxTokens,
       temperature,
     });
     setTestResult(null);
     onClose();
-  };
-
-  const handleReset = () => {
-    if (confirm('プロンプトをデフォルトに戻しますか？')) {
-      resetToDefault();
-      setPrompt(settings.prompt);
-      setModel(settings.model || DEFAULT_MODEL);
-      setMaxTokens(settings.maxTokens || 10000);
-      setTemperature(settings.temperature || 0.1);
-    }
   };
 
   const handleTestAPIKey = async () => {
@@ -68,9 +55,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       const result = await testAPIKey(apiKey, model);
       setTestResult(result);
     } catch (error: any) {
-      setTestResult({ 
-        success: false, 
-        message: `テストに失敗しました: ${error.message || '不明なエラー'}` 
+      setTestResult({
+        success: false,
+        message: `テストに失敗しました: ${error.message || '不明なエラー'}`
       });
     } finally {
       setIsTesting(false);
@@ -137,11 +124,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
             {testResult && (
               <div
-                className={`flex items-center gap-2 p-3 rounded-lg ${
-                  testResult.success
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
+                className={`flex items-center gap-2 p-3 rounded-lg ${testResult.success
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}
               >
                 {testResult.success ? (
                   <CheckCircle2 className="w-5 h-5" />
@@ -163,41 +149,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </a>
               ）で取得できます。
             </p>
-          </div>
-
-          {/* Prompt Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-bold text-gray-700">
-                プロンプト設定
-              </label>
-              <button
-                onClick={handleReset}
-                className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" />
-                デフォルトに戻す
-              </button>
-            </div>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={12}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
-              placeholder="プロンプトを入力してください"
-            />
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs font-bold text-blue-800 mb-2">使用可能な変数:</p>
-              <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                <li><code className="bg-blue-100 px-1 rounded">{'{{globalMode}}'}</code> - グローバルモード（詳細分析/過去比較）</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{analysisMode}}'}</code> - 分析モード名</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{selectedItem}}'}</code> - 選択項目</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{segments}}'}</code> - 選択セグメント（クリーンアップ済み、複数の場合はカンマ区切り）</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{selectedBrands}}'}</code> - 選択ブランド（カンマ区切り）</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{chartData}}'}</code> - チャートデータ（JSON形式）</li>
-                <li><code className="bg-blue-100 px-1 rounded">{'{{comparisonInstruction}}'}</code> - 複数ブランド比較時の指示（自動生成）</li>
-              </ul>
-            </div>
           </div>
 
           {/* Model Selection */}
@@ -229,7 +180,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Advanced Settings */}
           <div className="space-y-4 border-t border-gray-200 pt-4">
             <h3 className="text-sm font-bold text-gray-700">詳細設定</h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-gray-600">

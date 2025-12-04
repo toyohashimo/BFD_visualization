@@ -18,8 +18,8 @@ import {
 } from './src/types';
 
 // 既存の定数とコンポーネントをインポート
-import { 
-  ANALYSIS_MODE_CONFIGS, 
+import {
+  ANALYSIS_MODE_CONFIGS,
   HISTORICAL_ANALYSIS_MODE_CONFIGS,
   HISTORICAL_ANALYSIS_MODE_ORDER
 } from './constants/analysisConfigs';
@@ -42,6 +42,7 @@ import { useCSVExport } from './src/hooks/useCSVExport';
 import { useMultiDataSource } from './src/hooks/useMultiDataSource';
 import { useGlobalMode } from './src/hooks/useGlobalMode';
 import { useExcelParser } from './src/hooks/useExcelParser';
+import { useAISettings } from './src/hooks/useAISettings';
 
 /**
  * メインアプリケーションコンポーネント (リファクタリング後)
@@ -63,8 +64,8 @@ const App: React.FC = () => {
 
   // グローバルモードに応じた分析モード設定（メモ化して無限ループを防ぐ）
   const currentModeConfigs = useMemo(() => {
-    return globalMode === 'historical' 
-      ? HISTORICAL_ANALYSIS_MODE_CONFIGS 
+    return globalMode === 'historical'
+      ? HISTORICAL_ANALYSIS_MODE_CONFIGS
       : ANALYSIS_MODE_CONFIGS;
   }, [globalMode]);
 
@@ -158,8 +159,8 @@ const App: React.FC = () => {
   }, [hasValidData, sheet, data, setSheet]);
 
   // チャート設定（過去比較モードではdataSourcesの有無で判定）
-  const effectiveIsExcelData = globalMode === 'historical' 
-    ? dataSources.length > 0 
+  const effectiveIsExcelData = globalMode === 'historical'
+    ? dataSources.length > 0
     : isExcelData;
   const chartConfig = useChartConfiguration(effectiveIsExcelData);
 
@@ -189,6 +190,15 @@ const App: React.FC = () => {
     setSelectedBrands,
     setSelectedSegments
   );
+
+  // AI設定管理（デバッグモード用）
+  const { saveSettings } = useAISettings();
+
+  // デバッグモード: APIキー自動設定（開発環境のみ）
+  const handleSetDebugApiKey = useCallback((apiKey: string) => {
+    saveSettings({ apiKey });
+    console.log('[App] Debug API key configured via IconBar');
+  }, [saveSettings]);
 
   // UI状態
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -303,25 +313,6 @@ const App: React.FC = () => {
       setTargetBrand(allUniqueBrands[0]);
     }
   }, [allUniqueBrands, targetBrand, setTargetBrand]);
-
-  // selectedItemのリセット
-  useEffect(() => {
-    const config = currentModeConfigs[analysisMode];
-    if (!config || !config.axes || !config.axes.items) return;
-    const itemsConfig = config.axes.items;
-
-    if (itemsConfig.role === 'FILTER' && itemsConfig.itemSet) {
-      const currentItemSet = itemsConfig.itemSet;
-      const isCurrentItemTimeline = ['T1', 'T2', 'T3', 'T4', 'T5'].includes(selectedItem);
-      const isCurrentItemFunnel = FUNNEL_KEYS.includes(selectedItem as any);
-
-      if (currentItemSet === 'timeline' && isCurrentItemFunnel) {
-        setSelectedItem('T1');
-      } else if (currentItemSet === 'funnel' && isCurrentItemTimeline) {
-        setSelectedItem('FT');
-      }
-    }
-  }, [analysisMode, selectedItem, setSelectedItem, currentModeConfigs]);
 
 
   // Helper functions
@@ -555,18 +546,18 @@ const App: React.FC = () => {
     const parseArrayBuffer = async (buffer: ArrayBuffer) => {
       return await historicalParser.parseFromArrayBuffer(buffer);
     };
-    
+
     const result = await addDataSource(file, parseArrayBuffer);
     if (result) {
       console.log(`データソース「${result.name}」を追加しました`);
-      
+
       // 最初のデータソース追加時、シートとブランドを自動選択
       if (result.data && Object.keys(result.data).length > 0) {
         const firstSheet = Object.keys(result.data)[0];
         if (firstSheet && !sheet) {
           setSheet(firstSheet);
         }
-        
+
         // ブランドが未選択の場合、最初のブランドを選択
         if (selectedBrands.length === 0 && result.data[firstSheet]) {
           const firstBrand = Object.keys(result.data[firstSheet])[0];
@@ -584,10 +575,10 @@ const App: React.FC = () => {
     // 厳密な条件：現在詳細分析モードで、かつデータがない場合のみリセット
     if (globalMode !== 'detailed') return;
     if (hasDataFromHook) return;
-    
+
     // DEMOモードをONに（共有状態だが、詳細分析モードのみで使用）
     chartConfig.forceAnonymization();
-    
+
     // 注意：セグメント・ブランドのクリアは両モードで共有されるため、
     // ここではDEMOモードの切り替えのみを行う
     // セグメント・ブランドは各モードで個別に管理されるべき
@@ -599,10 +590,10 @@ const App: React.FC = () => {
     // 厳密な条件：現在過去比較モードで、かつデータソースが0個の場合のみリセット
     if (globalMode !== 'historical') return;
     if (dataSources.length > 0) return;
-    
+
     // DEMOモードをONに（共有状態だが、過去比較モードのみで使用）
     chartConfig.forceAnonymization();
-    
+
     // 注意：セグメント・ブランドのクリアは両モードで共有されるため、
     // ここではDEMOモードの切り替えのみを行う
   }, [globalMode, dataSources.length, chartConfig.forceAnonymization]);
@@ -616,7 +607,7 @@ const App: React.FC = () => {
         e.returnValue = ''; // Chromeでは空文字列が必要
         return ''; // 一部のブラウザでは戻り値が必要
       }
-      
+
       // 詳細分析モードでデータが存在する場合
       if (globalMode === 'detailed' && hasValidData) {
         e.preventDefault();
@@ -643,7 +634,7 @@ const App: React.FC = () => {
       // 詳細分析モードのデフォルト分析モードに切り替え
       setAnalysisMode('funnel_segment_brands');
     }
-    
+
     setGlobalMode(newMode);
   }, [globalMode, setGlobalMode, setAnalysisMode]);
 
@@ -658,6 +649,7 @@ const App: React.FC = () => {
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
           onOpenSettings={() => setShowSettingsModal(true)}
+          onSetDebugApiKey={handleSetDebugApiKey}
         />
       </div>
 
@@ -821,8 +813,8 @@ const App: React.FC = () => {
           <span className="font-bold text-indigo-900">BFD Analytics</span>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowSettingsModal(true)} 
+          <button
+            onClick={() => setShowSettingsModal(true)}
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
             title="設定"
             aria-label="設定"

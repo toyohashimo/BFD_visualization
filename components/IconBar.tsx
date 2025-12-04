@@ -19,6 +19,7 @@ interface IconBarProps {
     sidebarCollapsed: boolean;
     setSidebarCollapsed: (collapsed: boolean) => void;
     onOpenSettings: () => void;
+    onSetDebugApiKey?: (apiKey: string) => void; // デバッグモード用
 }
 
 export const IconBar: React.FC<IconBarProps> = ({
@@ -27,7 +28,8 @@ export const IconBar: React.FC<IconBarProps> = ({
     handleCopyImage,
     sidebarCollapsed,
     setSidebarCollapsed,
-    onOpenSettings
+    onOpenSettings,
+    onSetDebugApiKey
 }) => {
     const chartTypes: Array<{ type: ChartType; icon: React.ReactNode; label: string }> = [
         { type: 'bar', icon: <BarChart2 className="w-5 h-5" />, label: '集合縦棒' },
@@ -40,6 +42,25 @@ export const IconBar: React.FC<IconBarProps> = ({
         { target: 'chart', icon: <Camera className="w-5 h-5" />, label: 'グラフ' },
         { target: 'combined', icon: <ImageIcon className="w-5 h-5" />, label: 'グラフ＋データ' }
     ];
+
+    // デバッグモード: Shift+ダブルクリックでAPIキー自動設定（開発環境のみ）
+    const handleDebugClick = (e: React.MouseEvent) => {
+        if (!e.shiftKey) return;
+
+        // 開発環境でのみデバッグモード有効
+        if (!import.meta.env.DEV) {
+            console.warn('[Debug Mode] Only available in development');
+            return;
+        }
+
+        const debugApiKey = import.meta.env.VITE_DEBUG_GEMINI_API_KEY;
+        if (debugApiKey && onSetDebugApiKey) {
+            onSetDebugApiKey(debugApiKey);
+            console.log('[Debug Mode] API Key auto-configured');
+        } else if (!debugApiKey) {
+            console.warn('[Debug Mode] VITE_DEBUG_GEMINI_API_KEY not found in environment variables');
+        }
+    };
 
     return (
         <div className="flex-shrink-0 w-16 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-4 gap-2">
@@ -113,6 +134,13 @@ export const IconBar: React.FC<IconBarProps> = ({
                     設定
                 </span>
             </button>
+
+            {/* デバッグモード隠しエリア（Shift+ダブルクリック、開発環境のみ） */}
+            <div
+                onDoubleClick={handleDebugClick}
+                className="w-full h-8 cursor-default"
+                title={import.meta.env.DEV ? "Shift+ダブルクリックでデバッグモード" : ""}
+            />
         </div>
     );
 };

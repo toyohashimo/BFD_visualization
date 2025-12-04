@@ -118,9 +118,14 @@ function replacePromptVariables(
   let maskedBrands = context.selectedBrands;
   let maskedTargetBrand = context.targetBrand;
 
+  // selectedBrandsが空の場合、targetBrandを使用（FILTER役割の場合）
+  if (maskedBrands.length === 0 && context.targetBrand) {
+    maskedBrands = [context.targetBrand];
+  }
+
   if (isAnonymized) {
     // ブランド名をマスク（metadata.brandNamesを使用）
-    maskedBrands = context.selectedBrands.map((brand, index) => {
+    maskedBrands = maskedBrands.map((brand, index) => {
       return metadata.brandNames[brand] || `ブランド${index + 1}`;
     });
 
@@ -185,6 +190,25 @@ function replacePromptVariables(
   // 空の比較指示による空行を削除
   result = result.replace(/\n\n\n+/g, '\n\n');
 
+  // デバッグ: 置換後のプロンプトと使用された変数をログ出力
+  console.log('[AI Summary] ==== Prompt Variable Replacement Debug ====');
+  console.log('[AI Summary] Variables used:', {
+    globalMode: globalModeLabel,
+    analysisMode: context.analysisMode,
+    segments: segmentsStr,
+    selectedBrands: maskedBrands.join(', '),
+    selectedItem: context.selectedItem,
+  });
+  console.log('[AI Summary] Prompt after replacement (first 800 chars):', result.slice(0, 800));
+  console.log('[AI Summary] Checking for unreplaced variables:');
+  const unreplacedVars = result.match(/\{\{[^}]+\}\}/g);
+  if (unreplacedVars) {
+    console.warn('[AI Summary] ⚠️ Found unreplaced template variables:', unreplacedVars);
+  } else {
+    console.log('[AI Summary] ✓ All template variables replaced successfully');
+  }
+  console.log('[AI Summary] ========================================');
+
   return result;
 }
 
@@ -215,9 +239,8 @@ export async function generateAISummary(
     // モード別プロンプトを取得（フォールバックとしてDEFAULT_PROMPTを使用）
     const modePrompt = MODE_PROMPTS[request.context.analysisMode] || DEFAULT_PROMPT;
 
-    // プロンプトを構築（settingsのプロンプトが設定されていればそれを優先）
-    const basePrompt = settings.prompt || modePrompt;
-    const prompt = replacePromptVariables(basePrompt, request);
+    // プロンプトを構築（モード別プロンプトを常に使用）
+    const prompt = replacePromptVariables(modePrompt, request);
 
     // リクエスト情報をコンソールに出力
     const actualMaxTokens = settings.maxTokens || 10000;

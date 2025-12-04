@@ -1,104 +1,130 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { usePersistence } from './usePersistence';
+import { useModeState } from './useModeState';
 import { AnalysisMode } from '../types';
 import { STORAGE_KEYS, LIMITS, MESSAGES } from '../config/constants';
+import { ANALYSIS_MODE_CONFIGS, HISTORICAL_ANALYSIS_MODE_CONFIGS } from '../../constants/analysisConfigs';
 
 /**
- * 分析状態管理フック
+ * 分析状態管理フック（モードごとの選択状態保存対応版）
  */
 export const useAnalysisState = () => {
-  const [mode, setMode] = usePersistence<AnalysisMode>(
+  // 現在のモードID（全モード共通）
+  const [mode, setModeInternal] = usePersistence<AnalysisMode>(
     STORAGE_KEYS.ANALYSIS_MODE,
     'funnel_segment_brands' // デフォルトモード
   );
 
-  const [selectedBrands, setSelectedBrands] = usePersistence<string[]>(
-    STORAGE_KEYS.SELECTED_BRANDS,
-    [],
-    true // 再読み込み時に選択状態を解除
-  );
+  // 現在のモード設定を取得
+  const currentModeConfig = useMemo(() => {
+    return ANALYSIS_MODE_CONFIGS[mode] || HISTORICAL_ANALYSIS_MODE_CONFIGS[mode];
+  }, [mode]);
 
-  const [selectedSegments, setSelectedSegments] = usePersistence<string[]>(
-    STORAGE_KEYS.SELECTED_SEGMENTS,
-    [],
-    true // 再読み込み時に選択状態を解除
-  );
+  // モード固有の選択状態を管理
+  const modeState = useModeState(mode, currentModeConfig);
 
-  const [selectedItem, setSelectedItem] = usePersistence<string>(
-    STORAGE_KEYS.SELECTED_ITEM,
-    ''
-  );
+  // モード切り替え処理
+  const setMode = useCallback((newMode: AnalysisMode) => {
+    console.log(`[Mode Switch] ${mode} → ${newMode}`);
 
-  const [targetBrand, setTargetBrand] = usePersistence<string>(
-    STORAGE_KEYS.TARGET_BRAND,
-    ''
-  );
+    // 現在のモードのデータを新しいモードに引き継ぐ
+    // （新しいモードに既存データがない場合のみ）
+    const getModeStateKey = (modeId: string, field: string) => `mode_state:${modeId}:${field}`;
 
-  const [sheet, setSheet] = usePersistence<string>(
-    STORAGE_KEYS.SELECTED_SHEET,
-    ''
-  );
+    // 新しいモードのストレージをチェック
+    const newModeBrands = localStorage.getItem(getModeStateKey(newMode, 'brands'));
+    const newModeSegments = localStorage.getItem(getModeStateKey(newMode, 'segments'));
+
+    // 新しいモードに既存データがない場合、現在のモードのデータをコピー
+    if (!newModeBrands && modeState.brands.length > 0) {
+      localStorage.setItem(getModeStateKey(newMode, 'brands'), JSON.stringify(modeState.brands));
+      console.log(`[Mode Switch] Copied brands to new mode: ${modeState.brands}`);
+    }
+
+    if (!newModeSegments && modeState.segments.length > 0) {
+      localStorage.setItem(getModeStateKey(newMode, 'segments'), JSON.stringify(modeState.segments));
+      console.log(`[Mode Switch] Copied segments to new mode: ${modeState.segments}`);
+    }
+
+    // targetBrandとsheetもコピー
+    if (modeState.targetBrand) {
+      const newModeTargetBrand = localStorage.getItem(getModeStateKey(newMode, 'targetBrand'));
+      if (!newModeTargetBrand) {
+        localStorage.setItem(getModeStateKey(newMode, 'targetBrand'), JSON.stringify(modeState.targetBrand));
+      }
+    }
+
+    if (modeState.sheet) {
+      const newModeSheet = localStorage.getItem(getModeStateKey(newMode, 'sheet'));
+      if (!newModeSheet) {
+        localStorage.setItem(getModeStateKey(newMode, 'sheet'), JSON.stringify(modeState.sheet));
+      }
+    }
+
+    // usePersistenceとuseModeStateが自動的に保存・復元を行う
+    setModeInternal(newMode);
+  }, [mode, modeState, setModeInternal]);
 
   // 便利なヘルパーメソッド
   const addBrand = useCallback((brand: string): boolean => {
-    if (selectedBrands.includes(brand)) {
+    if (modeState.brands.includes(brand)) {
       alert(MESSAGES.ERROR.BRAND_ALREADY_SELECTED);
       return false;
     }
-    if (selectedBrands.length >= LIMITS.MAX_BRANDS) {
+    if (modeState.brands.length >= LIMITS.MAX_BRANDS) {
       alert(MESSAGES.ERROR.BRAND_LIMIT_EXCEEDED);
       return false;
     }
-    setSelectedBrands([...selectedBrands, brand]);
+    modeState.setBrands([...modeState.brands, brand]);
     return true;
-  }, [selectedBrands, setSelectedBrands]);
+  }, [modeState]);
 
   const removeBrand = useCallback((brand: string) => {
-    setSelectedBrands(selectedBrands.filter(b => b !== brand));
-  }, [selectedBrands, setSelectedBrands]);
+    modeState.setBrands(modeState.brands.filter(b => b !== brand));
+  }, [modeState]);
 
   const clearBrands = useCallback(() => {
-    setSelectedBrands([]);
-  }, [setSelectedBrands]);
+    modeState.setBrands([]);
+  }, [modeState]);
 
   const addSegment = useCallback((segment: string): boolean => {
-    if (selectedSegments.includes(segment)) {
+    if (modeState.segments.includes(segment)) {
       alert(MESSAGES.ERROR.SEGMENT_ALREADY_SELECTED);
       return false;
     }
-    if (selectedSegments.length >= LIMITS.MAX_SEGMENTS) {
+    if (modeState.segments.length >= LIMITS.MAX_SEGMENTS) {
       alert(MESSAGES.ERROR.SEGMENT_LIMIT_EXCEEDED);
       return false;
     }
-    setSelectedSegments([...selectedSegments, segment]);
+    modeState.setSegments([...modeState.segments, segment]);
     return true;
-  }, [selectedSegments, setSelectedSegments]);
+  }, [modeState]);
 
   const removeSegment = useCallback((segment: string) => {
-    setSelectedSegments(selectedSegments.filter(s => s !== segment));
-  }, [selectedSegments, setSelectedSegments]);
+    modeState.setSegments(modeState.segments.filter(s => s !== segment));
+  }, [modeState]);
 
   const clearSegments = useCallback(() => {
-    setSelectedSegments([]);
-  }, [setSelectedSegments]);
+    modeState.setSegments([]);
+  }, [modeState]);
 
   return {
     // State
     mode,
-    selectedBrands,
-    selectedSegments,
-    selectedItem,
-    targetBrand,
-    sheet,
-    
+    selectedBrands: modeState.brands,
+    selectedSegments: modeState.segments,
+    selectedItem: modeState.item,
+    targetBrand: modeState.targetBrand,
+    sheet: modeState.sheet,
+
     // Setters
     setMode,
-    setSelectedBrands,
-    setSelectedSegments,
-    setSelectedItem,
-    setTargetBrand,
-    setSheet,
-    
+    setSelectedBrands: modeState.setBrands,
+    setSelectedSegments: modeState.setSegments,
+    setSelectedItem: modeState.setItem,
+    setTargetBrand: modeState.setTargetBrand,
+    setSheet: modeState.setSheet,
+
     // Helpers
     addBrand,
     removeBrand,
