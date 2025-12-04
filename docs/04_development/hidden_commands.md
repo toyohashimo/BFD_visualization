@@ -11,7 +11,8 @@
 デモ環境やテスト環境で、3つのサンプルファイルを一瞬で読み込むための隠しコマンド。
 
 ### トリガー
-**グローバルモードタブをCtrl+Shift+ダブルクリック**
+過去比較モード時、**サイドバーのタイトル領域（「BFD Analytics」ロゴ）をShift+ダブルクリック**
+
 
 ### 動作
 以下の3つのサンプルファイルを自動的に読み込みます：
@@ -60,16 +61,74 @@ const handleGlobalModeDoubleClick = async (event: React.MouseEvent) => {
 };
 ```
 
-## 将来的な拡張案
+## 詳細分析モード: サンプルファイル自動読み込み
 
-### 詳細分析モード用隠しコマンド
-単一のサンプルファイルを即座に読み込むコマンドを追加する可能性があります。
+### 概要
+開発・テスト環境で、サンプルファイルを瞬時に読み込むための隠しコマンド。
+
+### トリガー
+詳細分析モード時、**サイドバーのタイトル領域（「BFD Analytics」ロゴ）をShift+ダブルクリック**
+
+### 動作
+`sample_202506.xlsx` を自動的に読み込みます。
+
+### 使用条件
+- 詳細分析モードが選択されている必要があります
+- サンプルファイルが `public/` ディレクトリに配置されている必要があります
+
+### 用途
+- **開発**: 機能開発中の即座のデータロード
+- **テスト**: テストケースの実行
+- **デモンストレーション**: プレゼンテーション準備
+
+### 実装詳細
+- **実装ファイル**: `components/Sidebar.tsx`
+- **イベントリスナー**: タイトル領域の`onDoubleClick`イベント
+- **キー検出**: `event.shiftKey`
+
+### コード例
+```typescript
+const handleTitleDoubleClick = async (e: React.MouseEvent) => {
+  if (e.shiftKey && globalMode === 'detailed') {
+    try {
+      const response = await fetch('/sample_202506.xlsx');
+      if (!response.ok) {
+        alert('sample_202506.xlsxが見つかりませんでした');
+        return;
+      }
+      const blob = await response.blob();
+      const file = new File([blob], 'sample_202506.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      await onFileDrop(file);
+      console.log('Sample data loaded via hidden command');
+    } catch (error) {
+      console.error('Failed to load sample_202506.xlsx:', error);
+      alert('sample_202506.xlsxの読み込みに失敗しました');
+    }
+  }
+};
+```
+
+---
+
+## 関連ドキュメント
+
+### デバッグモード
+デバッグモード機能については、別ドキュメントを参照してください：
+- [デバッグモード](./debug_mode.md) - APIキー設定なしでAI機能をテスト
+
+---
+
+## 将来的な拡張案
 
 ### データリセットコマンド
 すべてのデータとLocalStorageをクリアするコマンド（開発中のみ）
 
-### デバッグモード切り替え
-追加のログ出力や開発者ツールを表示するモード
+### 削除済みの拡張案
+以下の機能は既に実装されています：
+- ~~詳細分析モード用隠しコマンド~~ → 実装済み（上記参照）
+- ~~デバッグモード切り替え~~ → 実装済み（[debug_mode.md](./debug_mode.md) 参照）
 
 ## 注意事項
 
@@ -87,3 +146,6 @@ const handleGlobalModeDoubleClick = async (event: React.MouseEvent) => {
 |:---|:---|
 | 2025-11-30 | 過去比較モード用サンプルファイル自動読み込みコマンド実装 |
 | 2025-12-05 | 隠しコマンドドキュメントを04_development/に集約 |
+| 2025-12-05 | 詳細分析モード用隠しコマンドを追加 |
+| 2025-12-05 | デバッグモードを別ドキュメント(debug_mode.md)に分離 |
+
