@@ -391,6 +391,7 @@ const App: React.FC = () => {
 
   // Helper functions
   const getFilterValue = useCallback((axisType: AxisType): string => {
+    if (!analysisMode) return '';
     const config = currentModeConfigs[analysisMode];
     if (!config || !config.axes || !config.axes[axisType]) return '';
     const role = config.axes[axisType].role;
@@ -406,6 +407,7 @@ const App: React.FC = () => {
   }, [analysisMode, sheet, targetBrand, selectedItem, currentModeConfigs]);
 
   const getSeriesValues = useCallback((axisType: AxisType): string[] => {
+    if (!analysisMode) return [];
     const config = currentModeConfigs[analysisMode];
     if (!config || !config.axes || !config.axes[axisType]) return [];
     const role = config.axes[axisType].role;
@@ -421,6 +423,7 @@ const App: React.FC = () => {
   }, [analysisMode, selectedBrands, selectedSegments, currentModeConfigs]);
 
   const getXAxisValues = useCallback((axisType: AxisType): string[] => {
+    if (!analysisMode) return [];
     const config = currentModeConfigs[analysisMode];
     if (!config || !config.axes || !config.axes[axisType]) return [];
     const role = config.axes[axisType].role;
@@ -437,6 +440,9 @@ const App: React.FC = () => {
 
   // チャートデータ生成
   const chartData = useMemo(() => {
+    // analysisMode が有効でない場合は早期リターン
+    if (!analysisMode) return null;
+
     const config = currentModeConfigs[analysisMode];
     if (!config || !config.axes) return null;
 
