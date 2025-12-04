@@ -16,13 +16,16 @@ export const useChartConfiguration = (isExcelData: boolean) => {
   const [showDataLabels, setShowDataLabels] = useState(true);
   const [useAutoScale, setUseAutoScale] = useState(true);
   const [yAxisMax, setYAxisMax] = useState<number | ''>('');
-  
+
   const [currentTheme, setCurrentTheme] = usePersistence<string>(
     STORAGE_KEYS.COLOR_THEME,
     'default'
   );
 
-  const [isAnonymized, setIsAnonymized] = useState(true);
+  const [isAnonymized, setIsAnonymized] = usePersistence<boolean>(
+    STORAGE_KEYS.IS_ANONYMIZED,
+    true
+  );
 
   const activePalette = useMemo(
     () => COLOR_THEMES[currentTheme].palette,

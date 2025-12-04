@@ -349,7 +349,10 @@ const App: React.FC = () => {
   }, [allUniqueBrands]);
 
   const getBrandName = useCallback((originalName: string) => {
-    return chartConfig.isAnonymized ? (brandMap[originalName] || originalName) : originalName;
+    if (!chartConfig.isAnonymized) return originalName;
+    // When anonymized, only return mapped name if it exists, otherwise empty string
+    // This prevents real brand names from appearing during data loading
+    return brandMap[originalName] || '';
   }, [chartConfig.isAnonymized, brandMap]);
 
   // モード1が自動選択された際に、ブランドとセグメントが未選択の場合は最初のものを自動選択

@@ -27,6 +27,7 @@ export const STORAGE_KEYS = {
   CHART_TYPE: 'chart_type',
   COLOR_THEME: 'color_theme',
   SELECTED_SHEET: 'funnel_selected_sheet',
+  IS_ANONYMIZED: 'chart_is_anonymized',
 } as const;
 
 /**
