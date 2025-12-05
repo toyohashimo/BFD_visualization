@@ -378,7 +378,10 @@ const App: React.FC = () => {
     selectedBrands,
     selectedSegments,
     selectedItem,
-    getBrandName
+    getBrandName,
+    globalMode,
+    dataSources,
+    brandImageData
   );
 
   // targetBrandの初期化
@@ -726,6 +729,7 @@ const App: React.FC = () => {
           chartType={chartConfig.chartType}
           setChartType={chartConfig.setChartType}
           handleCopyImage={(target) => copyImage(target === 'chart' ? chartRef.current : combinedRef.current, target === 'chart')}
+          handleExportCSV={exportCSV}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
           onOpenSettings={() => setShowSettingsModal(true)}

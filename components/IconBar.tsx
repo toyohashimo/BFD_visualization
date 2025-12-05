@@ -6,6 +6,7 @@ import {
     Radar,
     Camera,
     Image as ImageIcon,
+    Download,
     ChevronRight,
     ChevronLeft,
     Settings
@@ -16,6 +17,7 @@ interface IconBarProps {
     chartType: ChartType;
     setChartType: (type: ChartType) => void;
     handleCopyImage: (target: 'chart' | 'combined') => void;
+    handleExportCSV: () => void;
     sidebarCollapsed: boolean;
     setSidebarCollapsed: (collapsed: boolean) => void;
     onOpenSettings: () => void;
@@ -28,6 +30,7 @@ export const IconBar: React.FC<IconBarProps> = ({
     chartType,
     setChartType,
     handleCopyImage,
+    handleExportCSV,
     sidebarCollapsed,
     setSidebarCollapsed,
     onOpenSettings,
@@ -116,6 +119,21 @@ export const IconBar: React.FC<IconBarProps> = ({
                         </span>
                     </button>
                 ))}
+            </div>
+
+            {/* CSV Export Button */}
+            <div className="flex flex-col gap-2 mb-4">
+                <button
+                    onClick={handleExportCSV}
+                    className="p-3 rounded-lg hover:bg-emerald-100 text-gray-600 hover:text-emerald-600 transition-all group relative"
+                    title="CSV出力"
+                >
+                    <Download className="w-5 h-5" />
+                    {/* Tooltip */}
+                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                        CSV出力
+                    </span>
+                </button>
             </div>
 
             <div className="w-full border-t border-gray-300 mb-2 mt-auto" />

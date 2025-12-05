@@ -101,6 +101,32 @@
 **デバッグモードOFF**:
 - プレースホルダー: 「APIキーが未設定です。AIサマリー機能は利用できません」
 
+#### LocalStorage削除ボタン
+
+**デバッグモードON時のみ表示**:
+- 位置: 設定画面フッター、左側
+- スタイル: 赤いテキストとボーダー、ゴミ箱アイコン付き
+- ラベル: 「LocalStorage削除」
+- 表示条件: `settings.isDebugMode === true`
+
+**機能**:
+- すべてのLocalStorageデータを削除
+- 確認ダイアログを表示（誤操作防止）
+- 削除後、自動的にページをリロード
+
+**削除される項目**:
+- `ai_summary_debug_mode`: デバッグモード状態
+- `ai_summary_api_key`: カスタムAPIキー
+- `ai_summary_model`: Geminiモデル設定
+- `ai_summary_max_tokens`: 最大トークン数
+- `ai_summary_temperature`: 温度設定
+- その他すべてのLocalStorageデータ
+
+**使用例**:
+- テスト環境のリセット
+- 設定のクリーンアップ
+- トラブルシューティング時の初期化
+
 ## 状態管理
 
 ### LocalStorage永続化
@@ -289,6 +315,7 @@ console.log('Effective API Key:', getEffectiveApiKey());
 |:---|:---|
 | 2025-12-04 | デバッグモード機能実装 |
 | 2025-12-05 | デバッグモードドキュメントを04_development/に集約 |
+| 2025-12-05 | LocalStorage削除ボタンを設定画面に追加（デバッグモード時のみ） |
 
 ---
 

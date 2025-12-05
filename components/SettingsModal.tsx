@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown } from 'lucide-react';
+import { X, Save, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, Trash2 } from 'lucide-react';
 import { useAISettings } from '../src/hooks/useAISettings';
 import { testAPIKey, GEMINI_MODELS, DEFAULT_MODEL } from '../src/services/aiSummaryService';
 
@@ -81,6 +81,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       });
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const handleClearLocalStorage = () => {
+    if (confirm('LocalStorageを削除しますか?\n\n全ての設定がクリアされ、ページがリロードされます。')) {
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -254,20 +261,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              キャンセル
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              保存
-            </button>
+          <div className="flex items-center justify-between gap-3">
+            {/* LocalStorage Clear Button (Debug Mode Only) */}
+            {settings.isDebugMode && (
+              <button
+                onClick={handleClearLocalStorage}
+                className="px-4 py-2 text-red-600 hover:bg-red-50 border border-red-300 rounded-lg transition-colors flex items-center gap-2"
+                title="LocalStorageを削除"
+              >
+                <Trash2 className="w-4 h-4" />
+                LocalStorage削除
+              </button>
+            )}
+
+            <div className="flex items-center gap-3 ml-auto">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                保存
+              </button>
+            </div>
           </div>
         </div>
       </div>

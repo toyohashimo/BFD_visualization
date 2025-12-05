@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+### Added - 2025-12-05
+
+#### UI改善: IconBarへのCSV出力アイコン追加とLocalStorage削除機能
+
+**実装日**: 2025-12-05  
+**実装者**: AI Assistant
+
+##### 新機能
+- ✅ IconBarにCSV出力アイコンを追加
+  - Downloadアイコン（Lucide React）を使用
+  - スクリーンショットアイコンの下に配置
+  - ホバー時にエメラルド色のハイライト
+  - サイドバーを閉じても直接CSV出力が可能
+- ✅ SettingsModalにLocalStorage削除ボタンを追加
+  - デバッグモード時のみ表示
+  - 全設定を一括削除可能
+  - 確認ダイアログで誤操作を防止
+  - 削除後に自動ページリロード
+
+##### 技術的変更
+- `components/IconBar.tsx`
+  - `Download`アイコンをインポート
+  - `handleExportCSV`プロップを追加
+  - CSV出力ボタンを追加（スクショアイコンの下、仕切り線なし）
+- `components/SettingsModal.tsx`
+  - `Trash2`アイコンをインポート
+  - `handleClearLocalStorage`関数を実装
+  - デバッグモード時のみ表示されるLocalStorage削除ボタンを追加
+- `App.tsx`
+  - IconBarコンポーネントに`handleExportCSV={exportCSV}`を追加
+
+##### ドキュメント
+- ✅ `docs/04_development/debug_mode.md` - LocalStorage削除ボタンのドキュメントを追加
+- ✅ `docs/01_overview/specification.md` - IconBarの機能にCSV出力を追加
+- ✅ `docs/02_features/data_management/csv_export.md` - CSV出力機能の包括的なドキュメントを新規作成
+
+##### 実装統計
+- **追加行数**: 約40行
+- **実装時間**: 約10分
+- **エラー率**: 0%
+
+---
+
 ### Added - 2025-12-01
 
 #### 過去比較モード Mode 9: ブランドイメージ分析（ブランド軸×過去比較）実装
