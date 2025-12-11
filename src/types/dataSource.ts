@@ -10,11 +10,11 @@ import { FunnelMetrics, TimelineMetrics, BrandPowerMetrics, FuturePowerMetrics, 
 /**
  * メトリクス型の統合
  */
-export type AnyMetrics = 
-  | FunnelMetrics 
-  | TimelineMetrics 
-  | BrandPowerMetrics 
-  | FuturePowerMetrics 
+export type AnyMetrics =
+  | FunnelMetrics
+  | TimelineMetrics
+  | BrandPowerMetrics
+  | FuturePowerMetrics
   | ArchetypeMetrics;
 
 /**
@@ -29,22 +29,22 @@ export type DataStructure = Record<string, Record<string, AnyMetrics>>;
 export interface DataSource {
   /** 一意識別子 (uuid) */
   id: string;
-  
+
   /** 表示名（編集可能、最大20文字） */
   name: string;
-  
+
   /** 元ファイル名 */
   fileName: string;
-  
+
   /** アップロード日時 */
   uploadedAt: Date;
-  
+
   /** 実データ（セグメント → ブランド → メトリクス） */
   data: DataStructure;
-  
+
   /** ブランドイメージデータ（オプション） */
   brandImageData?: Record<string, BrandImageData>;
-  
+
   /** グラフ・データテーブルへの表示ON/OFF */
   isActive: boolean;
 }
@@ -53,9 +53,9 @@ export interface DataSource {
  * 複数データソース管理状態
  */
 export interface MultiDataSourceState {
-  /** データソースリスト（最大3つ） */
+  /** データソースリスト（最大5つ） */
   dataSources: DataSource[];
-  
+
   /** 詳細分析モードで使用中のデータソースID */
   currentSourceId: string | null;
 }

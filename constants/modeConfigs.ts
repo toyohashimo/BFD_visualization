@@ -27,7 +27,7 @@ export const MODE_CONFIGS: Record<string, ModeConfig> = {
             type: 'multiple',
             required: true,
             min: 1,
-            max: 10
+            max: 15
         }
     },
 
@@ -42,7 +42,7 @@ export const MODE_CONFIGS: Record<string, ModeConfig> = {
             type: 'multiple',
             required: true,
             min: 1,
-            max: 10
+            max: 15
         },
         brands: {
             type: 'single',
@@ -61,13 +61,13 @@ export const MODE_CONFIGS: Record<string, ModeConfig> = {
             type: 'multiple',
             required: true,
             min: 1,
-            max: 10
+            max: 15
         },
         brands: {
             type: 'multiple',
             required: true,
             min: 1,
-            max: 10
+            max: 15
         }
     },
 
@@ -86,7 +86,7 @@ export const MODE_CONFIGS: Record<string, ModeConfig> = {
             type: 'multiple',
             required: true,
             min: 1,
-            max: 10
+            max: 15
         }
     }
 };

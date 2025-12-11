@@ -2,7 +2,7 @@
  * データソース管理コンポーネント
  * 
  * 複数のExcelファイル（データソース）の管理UI
- * - ファイル追加（最大3つ）
+ * - ファイル追加（最大5つ）
  * - データソース名編集
  * - 表示/非表示切り替え
  * - データソース削除
@@ -15,25 +15,25 @@ import { DataSource } from '../src/types/dataSource';
 interface DataSourceManagerProps {
   /** データソースリスト */
   dataSources: DataSource[];
-  
+
   /** ファイル追加ハンドラ */
   onAdd: (file: File) => Promise<void>;
-  
+
   /** データソース削除ハンドラ */
   onRemove: (id: string) => void;
-  
+
   /** データソース名更新ハンドラ */
   onUpdateName: (id: string, name: string) => void;
-  
+
   /** 表示/非表示切り替えハンドラ */
   onToggleActive: (id: string) => void;
-  
+
   /** 全データソースリセットハンドラ */
   onResetAll?: () => void;
-  
+
   /** 読み込み中フラグ */
   isLoading?: boolean;
-  
+
   /** 現在の分析モード（過去比較モード用） */
   analysisMode?: string;
 }
@@ -121,7 +121,7 @@ export const DataSourceManager: React.FC<DataSourceManagerProps> = ({
    */
   const handleResetAll = () => {
     if (dataSources.length === 0) return;
-    
+
     if (confirm('全てのデータソースを削除しますか？\nこの操作は取り消せません。')) {
       onResetAll?.();
     }
@@ -207,9 +207,8 @@ export const DataSourceManager: React.FC<DataSourceManagerProps> = ({
                 ) : (
                   <div className="flex flex-col">
                     <span
-                      className={`text-sm font-medium truncate ${
-                        source.isActive ? 'text-gray-800' : 'text-gray-400'
-                      }`}
+                      className={`text-sm font-medium truncate ${source.isActive ? 'text-gray-800' : 'text-gray-400'
+                        }`}
                       title={source.name}
                     >
                       {source.name}
@@ -246,7 +245,7 @@ export const DataSourceManager: React.FC<DataSourceManagerProps> = ({
       </div>
 
       {/* ファイル追加ボタン */}
-      {dataSources.length < 3 && (
+      {dataSources.length < 5 && (
         <div>
           <input
             ref={fileInputRef}
@@ -259,24 +258,23 @@ export const DataSourceManager: React.FC<DataSourceManagerProps> = ({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading}
-            className={`w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg transition-colors ${
-              isLoading
+            className={`w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg transition-colors ${isLoading
                 ? 'opacity-50 cursor-not-allowed'
                 : 'hover:bg-indigo-50 hover:border-indigo-300'
-            }`}
+              }`}
           >
             <Plus className="w-4 h-4" />
-            {isLoading ? '読み込み中...' : `ファイル追加 (${dataSources.length}/3)`}
+            {isLoading ? '読み込み中...' : `ファイル追加 (${dataSources.length}/5)`}
           </button>
         </div>
       )}
 
       {/* 最大数到達メッセージ */}
-      {dataSources.length >= 3 && (
+      {dataSources.length >= 5 && (
         <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
           <span className="font-medium">最大数に達しました</span>
           <br />
-          データソースは最大3つまでです
+          データソースは最大5つまでです
         </div>
       )}
     </div>

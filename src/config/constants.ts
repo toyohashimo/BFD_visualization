@@ -6,8 +6,8 @@
  * 制限値
  */
 export const LIMITS = {
-  MAX_BRANDS: 10,
-  MAX_SEGMENTS: 10,
+  MAX_BRANDS: 15,
+  MAX_SEGMENTS: 15,
   TOP_BRAND_IMAGE_ITEMS: 30,
   MIN_CHART_HEIGHT: 200,
   MAX_CHART_HEIGHT: 800,
@@ -55,8 +55,8 @@ export const MESSAGES = {
   ERROR: {
     FILE_LOAD_FAILED: 'ファイルの読み込みに失敗しました。',
     INVALID_EXCEL_FORMAT: '有効なデータが見つかりませんでした。\n指定のフォーマット(3行目がヘッダー、4行目以降データ、D列ブランド名)を確認してください。',
-    BRAND_LIMIT_EXCEEDED: '最大10ブランドまで比較できます',
-    SEGMENT_LIMIT_EXCEEDED: '最大10セグメントまで比較できます',
+    BRAND_LIMIT_EXCEEDED: '最大15ブランドまで比較できます',
+    SEGMENT_LIMIT_EXCEEDED: '最大15セグメントまで比較できます',
     BRAND_ALREADY_SELECTED: 'このブランドは既に追加されています',
     SEGMENT_ALREADY_SELECTED: 'このセグメントは既に追加されています',
     NO_DATA_TO_EXPORT: 'エクスポートするデータがありません',

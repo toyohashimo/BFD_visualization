@@ -59,38 +59,38 @@ export const useMultiDataSource = () => {
       regex: RegExp;
       format: (match: RegExpMatchArray) => string;
     }> = [
-      // YYYY_MM, YYYY-MM
-      {
-        regex: /(\d{4})[_-](\d{1,2})(?![_-]?\d)/,
-        format: (m) => `${m[1]}年${parseInt(m[2])}月`
-      },
-      // YYYY_Q1-Q4, YYYYQ1-Q4
-      {
-        regex: /(\d{4})[_-]?Q([1-4])/i,
-        format: (m) => `${m[1]}年Q${m[2]}`
-      },
-      // MonYYYY (Jan, Feb, etc.)
-      {
-        regex: /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[_-]?(\d{4})/i,
-        format: (m) => {
-          const months: Record<string, string> = {
-            jan: '1', feb: '2', mar: '3', apr: '4', may: '5', jun: '6',
-            jul: '7', aug: '8', sep: '9', oct: '10', nov: '11', dec: '12'
-          };
-          return `${m[2]}年${months[m[1].toLowerCase()]}月`;
+        // YYYY_MM, YYYY-MM
+        {
+          regex: /(\d{4})[_-](\d{1,2})(?![_-]?\d)/,
+          format: (m) => `${m[1]}年${parseInt(m[2])}月`
+        },
+        // YYYY_Q1-Q4, YYYYQ1-Q4
+        {
+          regex: /(\d{4})[_-]?Q([1-4])/i,
+          format: (m) => `${m[1]}年Q${m[2]}`
+        },
+        // MonYYYY (Jan, Feb, etc.)
+        {
+          regex: /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[_-]?(\d{4})/i,
+          format: (m) => {
+            const months: Record<string, string> = {
+              jan: '1', feb: '2', mar: '3', apr: '4', may: '5', jun: '6',
+              jul: '7', aug: '8', sep: '9', oct: '10', nov: '11', dec: '12'
+            };
+            return `${m[2]}年${months[m[1].toLowerCase()]}月`;
+          }
+        },
+        // YYYY_MM_DD, YYYY-MM-DD
+        {
+          regex: /(\d{4})[_-](\d{2})[_-](\d{2})/,
+          format: (m) => `${m[1]}年${parseInt(m[2])}月${parseInt(m[3])}日`
+        },
+        // YYYYMM (最後にチェック - より具体的なパターンを先に)
+        {
+          regex: /(\d{4})(\d{2})(?!\d)/,
+          format: (m) => `${m[1]}年${parseInt(m[2])}月`
         }
-      },
-      // YYYY_MM_DD, YYYY-MM-DD
-      {
-        regex: /(\d{4})[_-](\d{2})[_-](\d{2})/,
-        format: (m) => `${m[1]}年${parseInt(m[2])}月${parseInt(m[3])}日`
-      },
-      // YYYYMM (最後にチェック - より具体的なパターンを先に)
-      {
-        regex: /(\d{4})(\d{2})(?!\d)/,
-        format: (m) => `${m[1]}年${parseInt(m[2])}月`
-      }
-    ];
+      ];
 
     for (const pattern of patterns) {
       const match = nameWithoutExt.match(pattern.regex);
@@ -139,9 +139,9 @@ export const useMultiDataSource = () => {
       // 状態更新（関数形式を使用して最新の状態を取得）
       return new Promise<DataSource | null>((resolve) => {
         setState((prevState) => {
-          // 最大3つまでの制限
-          if (prevState.dataSources.length >= 3) {
-            alert('データソースは最大3つまで追加できます。');
+          // 最大5つまでの制限
+          if (prevState.dataSources.length >= 5) {
+            alert('データソースは最大5つまで追加できます。');
             resolve(null);
             return prevState;
           }
@@ -151,7 +151,7 @@ export const useMultiDataSource = () => {
             dataSources: newDataSources,
             currentSourceId: prevState.currentSourceId || dataSource.id
           };
-          
+
           resolve(dataSource);
           return newState;
         });
@@ -170,9 +170,9 @@ export const useMultiDataSource = () => {
    */
   const removeDataSource = useCallback((id: string) => {
     const newDataSources = state.dataSources.filter(ds => ds.id !== id);
-    
+
     // 現在選択中のソースを削除した場合、最初のソースに切り替え
-    const newCurrentSourceId = state.currentSourceId === id 
+    const newCurrentSourceId = state.currentSourceId === id
       ? (newDataSources[0]?.id || null)
       : state.currentSourceId;
 
@@ -192,7 +192,7 @@ export const useMultiDataSource = () => {
   const updateDataSourceName = useCallback((id: string, name: string) => {
     // 文字数制限
     const trimmedName = name.trim().substring(0, 20);
-    
+
     if (!trimmedName) {
       alert('データソース名は1文字以上入力してください。');
       return;
@@ -275,8 +275,8 @@ export const useMultiDataSource = () => {
    * @param dataSource 追加するデータソース
    */
   const addDirectDataSource = useCallback((dataSource: DataSource) => {
-    if (state.dataSources.length >= 3) {
-      console.warn('データソースは最大3つまで');
+    if (state.dataSources.length >= 5) {
+      console.warn('データソースは最大5つまで');
       return;
     }
 
@@ -303,7 +303,7 @@ export const useMultiDataSource = () => {
     // 状態
     dataSources: state.dataSources,
     currentSourceId: state.currentSourceId,
-    
+
     // メソッド
     addDataSource,
     addDirectDataSource,
