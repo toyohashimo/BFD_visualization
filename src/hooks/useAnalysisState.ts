@@ -27,60 +27,31 @@ export const useAnalysisState = () => {
   const setMode = useCallback((newMode: AnalysisMode) => {
     console.log(`[Mode Switch] ${mode} → ${newMode}`);
 
-    // 現在のモードのデータを新しいモードに引き継ぐ
-    // （新しいモードに既存データがない場合のみ）
-    const getModeStateKey = (modeId: string, field: string) => `mode_state:${modeId}:${field}`;
-
-    // 新しいモードのストレージをチェック
-    const newModeBrands = localStorage.getItem(getModeStateKey(newMode, 'brands'));
-    const newModeSegments = localStorage.getItem(getModeStateKey(newMode, 'segments'));
-
-    // 新しいモードに既存データがない場合、現在のモードのデータをコピー
-    if (!newModeBrands && modeState.brands.length > 0) {
-      localStorage.setItem(getModeStateKey(newMode, 'brands'), JSON.stringify(modeState.brands));
-      console.log(`[Mode Switch] Copied brands to new mode: ${modeState.brands}`);
-    }
-
-    if (!newModeSegments && modeState.segments.length > 0) {
-      localStorage.setItem(getModeStateKey(newMode, 'segments'), JSON.stringify(modeState.segments));
-      console.log(`[Mode Switch] Copied segments to new mode: ${modeState.segments}`);
-    }
-
-    // targetBrandとsheetもコピー
-    if (modeState.targetBrand) {
-      const newModeTargetBrand = localStorage.getItem(getModeStateKey(newMode, 'targetBrand'));
-      if (!newModeTargetBrand) {
-        localStorage.setItem(getModeStateKey(newMode, 'targetBrand'), JSON.stringify(modeState.targetBrand));
-      }
-    }
-
-    if (modeState.sheet) {
-      const newModeSheet = localStorage.getItem(getModeStateKey(newMode, 'sheet'));
-      if (!newModeSheet) {
-        localStorage.setItem(getModeStateKey(newMode, 'sheet'), JSON.stringify(modeState.sheet));
-      }
-    }
-
-    // usePersistenceとuseModeStateが自動的に保存・復元を行う
+    // 統一ストレージを使用しているため、モード間でデータは自動的に共有される
+    // モード固有のバリデーションはuseModeStateで実行される
     setModeInternal(newMode);
-  }, [mode, modeState, setModeInternal]);
+  }, [mode, setModeInternal]);
 
   // 便利なヘルパーメソッド
+  // 注: displayStateではなくrawBrands/rawSegmentsを使用（フィルターされていない元の値）
   const addBrand = useCallback((brand: string): boolean => {
-    if (modeState.brands.includes(brand)) {
+    // rawBrandsを使用（displayStateではない）
+    const currentBrands = modeState.rawBrands || modeState.brands;
+    if (currentBrands.includes(brand)) {
       alert(MESSAGES.ERROR.BRAND_ALREADY_SELECTED);
       return false;
     }
-    if (modeState.brands.length >= LIMITS.MAX_BRANDS) {
+    if (currentBrands.length >= LIMITS.MAX_BRANDS) {
       alert(MESSAGES.ERROR.BRAND_LIMIT_EXCEEDED);
       return false;
     }
-    modeState.setBrands([...modeState.brands, brand]);
+    modeState.setBrands([...currentBrands, brand]);
     return true;
   }, [modeState]);
 
   const removeBrand = useCallback((brand: string) => {
-    modeState.setBrands(modeState.brands.filter(b => b !== brand));
+    const currentBrands = modeState.rawBrands || modeState.brands;
+    modeState.setBrands(currentBrands.filter(b => b !== brand));
   }, [modeState]);
 
   const clearBrands = useCallback(() => {
@@ -88,25 +59,32 @@ export const useAnalysisState = () => {
   }, [modeState]);
 
   const addSegment = useCallback((segment: string): boolean => {
-    if (modeState.segments.includes(segment)) {
+    const currentSegments = modeState.rawSegments || modeState.segments;
+    if (currentSegments.includes(segment)) {
       alert(MESSAGES.ERROR.SEGMENT_ALREADY_SELECTED);
       return false;
     }
-    if (modeState.segments.length >= LIMITS.MAX_SEGMENTS) {
+    if (currentSegments.length >= LIMITS.MAX_SEGMENTS) {
       alert(MESSAGES.ERROR.SEGMENT_LIMIT_EXCEEDED);
       return false;
     }
-    modeState.setSegments([...modeState.segments, segment]);
+    modeState.setSegments([...currentSegments, segment]);
     return true;
   }, [modeState]);
 
   const removeSegment = useCallback((segment: string) => {
-    modeState.setSegments(modeState.segments.filter(s => s !== segment));
+    const currentSegments = modeState.rawSegments || modeState.segments;
+    modeState.setSegments(currentSegments.filter(s => s !== segment));
   }, [modeState]);
 
   const clearSegments = useCallback(() => {
     modeState.setSegments([]);
   }, [modeState]);
+
+  // Computed getter for current sheet (segments[0] acts as data source)
+  const currentSheet = useMemo(() => {
+    return modeState.segments[0] || '';
+  }, [modeState.segments]);
 
   return {
     // State
@@ -115,7 +93,7 @@ export const useAnalysisState = () => {
     selectedSegments: modeState.segments,
     selectedItem: modeState.item,
     targetBrand: modeState.targetBrand,
-    sheet: modeState.sheet,
+    currentSheet, // computed from segments[0], no setter
 
     // Setters
     setMode,
@@ -123,7 +101,7 @@ export const useAnalysisState = () => {
     setSelectedSegments: modeState.setSegments,
     setSelectedItem: modeState.setItem,
     setTargetBrand: modeState.setTargetBrand,
-    setSheet: modeState.setSheet,
+    // setSheet removed - use setSelectedSegments to change data source
 
     // Helpers
     addBrand,

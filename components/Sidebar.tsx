@@ -64,8 +64,8 @@ interface SidebarProps {
     onClearData: () => void; // データリセット用
     analysisMode: AnalysisMode;
     setAnalysisMode: (mode: AnalysisMode) => void;
-    sheet: string;
-    setSheet: (sheet: string) => void;
+    currentSheet: string;
+    setSelectedSegments: (segments: string[]) => void;
     data: SheetData;
     targetBrand: string;
     setTargetBrand: (brand: string) => void;
@@ -126,8 +126,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onClearData,
     analysisMode,
     setAnalysisMode,
-    sheet,
-    setSheet,
+    currentSheet,
+    setSelectedSegments,
     data,
     targetBrand,
     setTargetBrand,
@@ -454,7 +454,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setSelectedItem={setSelectedItem}
                     isExcelData={isExcelData}
                     dataSources={dataSources}
-                    selectedSegment={sheet}
+                    selectedSegment={currentSheet}
                     selectedBrand={selectedBrands && selectedBrands[0]}
                 />
 
@@ -465,8 +465,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <SegmentsSection
                     globalMode={globalMode}
                     analysisMode={analysisMode}
-                    sheet={sheet}
-                    setSheet={setSheet}
+                    currentSheet={currentSheet}
+                    setSelectedSegments={setSelectedSegments}
                     data={data}
                     selectedSegments={selectedSegments}
                     availableSegments={availableSegments}

@@ -29,7 +29,7 @@ import { useAISummary, AISummaryContext, AISummaryMetadata } from '../src/hooks/
 interface ChartAreaProps {
     globalMode: GlobalMode;
     analysisMode: AnalysisMode;
-    sheet: string;
+    currentSheet: string;
     targetBrand: string;
     selectedBrands: string[];
     selectedSegments: string[];
@@ -54,7 +54,7 @@ interface ChartAreaProps {
 export const ChartArea: React.FC<ChartAreaProps> = ({
     globalMode,
     analysisMode,
-    sheet,
+    currentSheet,
     targetBrand,
     selectedBrands,
     selectedSegments,
@@ -286,7 +286,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         if (axes.segments.role === 'FILTER') {
             filters.push({
                 label: axes.segments.label,
-                value: formatSegmentName(sheet, isAnonymized)
+                value: formatSegmentName(currentSheet, isAnonymized)
             });
         }
 
@@ -309,7 +309,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         }
 
         return filters;
-    }, [analysisMode, sheet, targetBrand, selectedItem, getBrandName, currentModeConfigs]);
+    }, [analysisMode, currentSheet, targetBrand, selectedItem, getBrandName, currentModeConfigs]);
 
     // 後方互換性のため、最初のフィルタをchartLabel/chartValueとして保持
     const { chartLabel, chartValue } = useMemo(() => {
@@ -344,7 +344,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         globalMode,
         analysisMode,
         chartType,
-        sheet,
+        sheet: currentSheet,
         targetBrand,
         selectedBrands,
         selectedSegments,
@@ -354,7 +354,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
             isActive: ds.isActive,
         })) : undefined,
         isAnonymized, // DEMOモード判定を追加
-    }), [globalMode, analysisMode, chartType, sheet, targetBrand, selectedBrands, selectedSegments, selectedItem, dataSources, isAnonymized]);
+    }), [globalMode, analysisMode, chartType, currentSheet, targetBrand, selectedBrands, selectedSegments, selectedItem, dataSources, isAnonymized]);
 
     // AIサマリーフック
     const { summary, isLoading, error, generateSummary, clearSummary } = useAISummary(
@@ -813,7 +813,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
 
                                     return (seriesAxis === 'brands' ? selectedBrands : selectedSegments).map((item, index) => {
                                         const isBrand = seriesAxis === 'brands';
-                                        const dataRow = isBrand ? data[sheet][item] : data[item]?.[targetBrand];
+                                        const dataRow = isBrand ? data[currentSheet][item] : data[item]?.[targetBrand];
                                         const colorIndex = isBrand ? (brandColorIndices[item] ?? index) : (segmentColorIndices[item] ?? index);
                                         const color = activePalette[colorIndex % activePalette.length].hex;
                                         const displayName = isBrand ? getBrandName(item) : item.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim();

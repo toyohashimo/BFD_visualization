@@ -22,8 +22,8 @@ import { formatSegmentName } from '../src/utils/formatters';
 interface SegmentsSectionProps {
     globalMode: GlobalMode;
     analysisMode: AnalysisMode;
-    sheet: string;
-    setSheet: (sheet: string) => void;
+    currentSheet: string;
+    setSelectedSegments: (segments: string[]) => void;
     data: SheetData;
     selectedSegments: string[];
     availableSegments: string[];
@@ -40,8 +40,8 @@ interface SegmentsSectionProps {
 export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
     globalMode,
     analysisMode,
-    sheet,
-    setSheet,
+    currentSheet,
+    setSelectedSegments,
     data,
     selectedSegments,
     availableSegments,
@@ -90,8 +90,8 @@ export const SegmentsSection: React.FC<SegmentsSectionProps> = ({
             {!allowMultiple ? (
                 <div className="relative">
                     <select
-                        value={sheet}
-                        onChange={(e) => setSheet(e.target.value)}
+                        value={currentSheet}
+                        onChange={(e) => setSelectedSegments([e.target.value])}
                         className="w-full p-2.5 pr-8 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer"
                     >
                         {availableSegments.map((s, index) => (

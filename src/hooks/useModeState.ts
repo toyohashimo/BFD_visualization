@@ -1,72 +1,64 @@
-import { useCallback, useMemo, useEffect } from 'react';
-import { usePersistence } from './usePersistence';
+import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { useUnifiedStorage } from './useUnifiedStorage';
 import { AnalysisModeConfig } from '../types';
 
 /**
  * モードごとの選択状態を保持する型
+ * Note: segments[0]がデータソース（シート）として機能します
  */
 export interface ModeState {
     brands: string[];
     segments: string[];
     item: string;
-    targetBrand: string;
-    sheet: string;
+    targetBrand: string;  // 動的生成（brands[0]から）
 }
 
 /**
- * モード固有のストレージキーを生成
+ * モード固有のストレージキーを生成（レガシーマイグレーション用）
  */
-const getModeStateKey = (modeId: string, field: keyof ModeState): string => {
+const getModeStateKey = (modeId: string, field: string): string => {
     return `mode_state:${modeId}:${field}`;
 };
 
 /**
- * モードの制約に基づいて選択状態をバリデーション
+ * モードの制約に基づいて選択状態を「表示用」にバリデーション
+ * 注意: この関数はlocalStorageを変更しません（表示フィルターのみ）
  */
-const validateModeState = (
-    state: ModeState,
+const getDisplayState = (
+    state: Omit<ModeState, 'targetBrand'>,
     config: AnalysisModeConfig
-): ModeState => {
-    const validated = { ...state };
+): Omit<ModeState, 'targetBrand'> => {
+    const display = { ...state };
 
-    // ブランドの制約チェック
+    // ブランドの表示制約
     if (config.axes.brands) {
         if (config.axes.brands.role === 'FILTER') {
-            // FILTERの場合: 既存のtargetBrandを優先、なければbrandsから取得
-            validated.targetBrand = state.targetBrand || state.brands[0] || '';
-            validated.brands = [];
+            // FILTERの場合: 最初の1つのみ表示（localStorageは変更しない）
+            display.brands = state.brands.length > 0 ? [state.brands[0]] : [];
         } else if (config.axes.brands.allowMultiple === false) {
-            // 単一選択のみ許可の場合: 最初の1つだけ残す
-            validated.brands = state.brands.slice(0, 1);
-            validated.targetBrand = '';
-        } else {
-            // 複数選択許可の場合: そのまま
-            validated.targetBrand = '';
+            // SAの場合: 最初の1つのみ表示
+            display.brands = state.brands.slice(0, 1);
         }
+        // MAの場合: 全て表示
     }
 
-    // セグメントの制約チェック
+    // セグメントの表示制約
     if (config.axes.segments) {
         if (config.axes.segments.role === 'FILTER') {
-            // FILTERの場合: 既存のsheetを優先、なければsegmentsから取得
-            validated.sheet = state.sheet || state.segments[0] || '';
-            validated.segments = [];
+            // FILTERの場合: segments[0]をデータソースとして使用
+            // 表示用には空配列にはせず、[0]のみ残す
+            display.segments = state.segments.length > 0 ? [state.segments[0]] : [];
         } else if (config.axes.segments.allowMultiple === false) {
-            // 単一選択のみ許可の場合: 最初の1つだけ残す
-            validated.segments = state.segments.slice(0, 1);
-            validated.sheet = '';
-        } else {
-            // 複数選択許可の場合（SERIES役割など）: segmentsはそのまま、sheetは既存値を保持
-            // モード切り替え時にsheetが設定されていれば保持
-            // （空の場合は空のまま）
+            // SAの場合: 最初の1つのみ表示
+            display.segments = state.segments.slice(0, 1);
         }
+        // MAの場合: 全て表示
     }
 
     // 分析項目の制約チェック
     if (config.axes.items) {
         const itemsConfig = config.axes.items;
 
-        // FILTERロールで、itemSetが異なる場合はリセット
         if (itemsConfig.role === 'FILTER' && itemsConfig.itemSet) {
             const currentItemSet = itemsConfig.itemSet;
             const isTimelineItem = ['T1', 'T2', 'T3', 'T4', 'T5'].includes(state.item);
@@ -76,88 +68,112 @@ const validateModeState = (
 
             // itemSetに合わない場合はデフォルト値にリセット
             if (currentItemSet === 'timeline' && !isTimelineItem) {
-                validated.item = 'T1';
+                display.item = 'T1';
             } else if (currentItemSet === 'funnel' && !isFunnelItem) {
-                validated.item = 'FT';
+                display.item = 'FT';
             } else if (currentItemSet === 'brandPower' && !isBrandPowerItem) {
-                validated.item = 'BP1';
+                display.item = 'BP1';
             } else if (currentItemSet === 'futurePower' && !isFuturePowerItem) {
-                validated.item = 'FP1';
+                display.item = 'FP1';
             } else if (currentItemSet === 'brandImage') {
-                // ブランドイメージの場合は特別処理（autoSelectなので空文字列）
-                validated.item = '';
+                display.item = '';
             }
         }
     }
 
-    return validated;
+    return display;
 };
 
 /**
- * 既存のグローバル選択状態を現在のモードに移行
+ * 既存のモード固有ストレージから統一ストレージへの移行
  * 一度だけ実行される
  */
-const migrateOldStorage = (modeId: string) => {
-    const migrationKey = `mode_state_migrated:${modeId}`;
+const migrateToUnifiedStorage = () => {
+    const migrationKey = 'unified_storage_migrated';
 
-    // すでに移行済みの場合はスキップ
     if (localStorage.getItem(migrationKey)) {
         return;
     }
 
-    console.log(`[Migration] Migrating old storage for mode: ${modeId}`);
+    console.log('[Migration] Starting migration from mode-specific to unified storage...');
 
-    // 旧キーから読み込み
     try {
-        const oldBrands = localStorage.getItem('funnel_selected_brands');
-        const oldSegments = localStorage.getItem('funnel_selected_segments');
-        const oldItem = localStorage.getItem('funnel_selected_item');
-        const oldTargetBrand = localStorage.getItem('funnel_target_brand');
-        const oldSheet = localStorage.getItem('funnel_selected_sheet');
+        const allBrandsData: string[][] = [];
+        const allSegmentsData: string[][] = [];
+        let mostRecentSheet = '';
+        let mostRecentItem = '';
 
-        let migrated = false;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key || !key.includes('mode_state:')) continue;
 
-        // 新キーに保存（既存の新キーがない場合のみ）
-        if (oldBrands && !localStorage.getItem(getModeStateKey(modeId, 'brands'))) {
-            localStorage.setItem(getModeStateKey(modeId, 'brands'), oldBrands);
-            migrated = true;
+            if (key.includes(':brands')) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (Array.isArray(data) && data.length > 0) {
+                        allBrandsData.push(data);
+                    }
+                } catch (e) {
+                    console.warn(`[Migration] Failed to parse brands from ${key}`, e);
+                }
+            } else if (key.includes(':segments')) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (Array.isArray(data) && data.length > 0) {
+                        allSegmentsData.push(data);
+                    }
+                } catch (e) {
+                    console.warn(`[Migration] Failed to parse segments from ${key}`, e);
+                }
+            } else if (key.includes(':sheet') && !mostRecentSheet) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || '""');
+                    if (data) mostRecentSheet = data;
+                } catch (e) {
+                    const data = localStorage.getItem(key);
+                    if (data) mostRecentSheet = data;
+                }
+            } else if (key.includes(':item') && !mostRecentItem) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || '""');
+                    if (data) mostRecentItem = data;
+                } catch (e) {
+                    const data = localStorage.getItem(key);
+                    if (data) mostRecentItem = data;
+                }
+            }
         }
 
-        if (oldSegments && !localStorage.getItem(getModeStateKey(modeId, 'segments'))) {
-            localStorage.setItem(getModeStateKey(modeId, 'segments'), oldSegments);
-            migrated = true;
+        const maxBrands = allBrandsData.reduce((max, current) =>
+            current.length > max.length ? current : max, []).slice(0, 15);
+        const maxSegments = allSegmentsData.reduce((max, current) =>
+            current.length > max.length ? current : max, []).slice(0, 15);
+
+        if (maxBrands.length > 0) {
+            localStorage.setItem('unified_brands', JSON.stringify(maxBrands));
+            console.log(`[Migration] Migrated ${maxBrands.length} brands`);
+        }
+        if (maxSegments.length > 0) {
+            localStorage.setItem('unified_segments', JSON.stringify(maxSegments));
+            console.log(`[Migration] Migrated ${maxSegments.length} segments`);
+        }
+        // unified_sheet is deprecated - no longer migrating
+        if (mostRecentItem) {
+            localStorage.setItem('unified_item', JSON.stringify(mostRecentItem));
+            console.log(`[Migration] Migrated item: ${mostRecentItem}`);
         }
 
-        if (oldItem && !localStorage.getItem(getModeStateKey(modeId, 'item'))) {
-            localStorage.setItem(getModeStateKey(modeId, 'item'), JSON.stringify(oldItem));
-            migrated = true;
-        }
-
-        if (oldTargetBrand && !localStorage.getItem(getModeStateKey(modeId, 'targetBrand'))) {
-            localStorage.setItem(getModeStateKey(modeId, 'targetBrand'), JSON.stringify(oldTargetBrand));
-            migrated = true;
-        }
-
-        if (oldSheet && !localStorage.getItem(getModeStateKey(modeId, 'sheet'))) {
-            localStorage.setItem(getModeStateKey(modeId, 'sheet'), JSON.stringify(oldSheet));
-            migrated = true;
-        }
-
-        if (migrated) {
-            console.log(`[Migration] Successfully migrated data for mode: ${modeId}`);
-        }
-
-        // 移行済みフラグを設定
         localStorage.setItem(migrationKey, 'true');
+        console.log('[Migration] Migration completed successfully');
     } catch (error) {
-        console.error(`[Migration] Failed to migrate data for mode: ${modeId}`, error);
+        console.error('[Migration] Failed to migrate storage:', error);
     }
 };
 
 /**
- * モードごとの選択状態を管理するフック
+ * モードごとの選択状態を管理するフック（統一ストレージ版）
  * 
- * @param modeId 分析モードID
+ * @param modeId 分析モードID（レガシー互換性のため保持）
  * @param config 分析モード設定
  * @returns モードごとの選択状態とセッター関数
  */
@@ -167,103 +183,92 @@ export const useModeState = (
 ) => {
     // 初回のみマイグレーション実行
     useEffect(() => {
-        migrateOldStorage(modeId);
-    }, [modeId]);
+        migrateToUnifiedStorage();
+    }, []);
 
-    // モード固有のストレージから読み込み
-    const [rawBrands, setRawBrands] = usePersistence<string[]>(
-        getModeStateKey(modeId, 'brands'),
-        []
-    );
+    // 統一ストレージから読み込み
+    const unifiedStorage = useUnifiedStorage();
 
-    const [rawSegments, setRawSegments] = usePersistence<string[]>(
-        getModeStateKey(modeId, 'segments'),
-        []
-    );
+    // 最新の値を参照するためのref（useCallback内で使用）
+    const brandsRef = useRef(unifiedStorage.brands);
+    const segmentsRef = useRef(unifiedStorage.segments);
 
-    const [rawItem, setRawItem] = usePersistence<string>(
-        getModeStateKey(modeId, 'item'),
-        ''
-    );
+    useEffect(() => {
+        brandsRef.current = unifiedStorage.brands;
+        segmentsRef.current = unifiedStorage.segments;
+    }, [unifiedStorage.brands, unifiedStorage.segments]);
 
-    const [rawTargetBrand, setRawTargetBrand] = usePersistence<string>(
-        getModeStateKey(modeId, 'targetBrand'),
-        ''
-    );
-
-    const [rawSheet, setRawSheet] = usePersistence<string>(
-        getModeStateKey(modeId, 'sheet'),
-        ''
-    );
-
-    // 現在の状態をバリデーション
-    const validatedState = useMemo(() => {
-        return validateModeState(
+    // 表示用の状態（モード制約を適用、localStorageは変更しない）
+    const displayState = useMemo(() => {
+        return getDisplayState(
             {
-                brands: rawBrands,
-                segments: rawSegments,
-                item: rawItem,
-                targetBrand: rawTargetBrand,
-                sheet: rawSheet,
+                brands: unifiedStorage.brands,
+                segments: unifiedStorage.segments,
+                item: unifiedStorage.item,
             },
             config
         );
-    }, [rawBrands, rawSegments, rawItem, rawTargetBrand, rawSheet, config]);
+    }, [unifiedStorage.brands, unifiedStorage.segments, unifiedStorage.item, config]);
 
-    // バリデーション結果をストレージに書き戻す
-    // （rawデータとvalidatedデータが異なる場合のみ）
-    useEffect(() => {
-        if (JSON.stringify(rawBrands) !== JSON.stringify(validatedState.brands)) {
-            setRawBrands(validatedState.brands);
+    // targetBrandを動的に生成
+    const targetBrand = useMemo(() => {
+        if (config.axes.brands?.role === 'FILTER') {
+            return displayState.brands[0] || '';
         }
-        if (JSON.stringify(rawSegments) !== JSON.stringify(validatedState.segments)) {
-            setRawSegments(validatedState.segments);
-        }
-        if (rawItem !== validatedState.item) {
-            setRawItem(validatedState.item);
-        }
-        if (rawTargetBrand !== validatedState.targetBrand) {
-            setRawTargetBrand(validatedState.targetBrand);
-        }
-        if (rawSheet !== validatedState.sheet) {
-            setRawSheet(validatedState.sheet);
-        }
-    }, [validatedState, rawBrands, rawSegments, rawItem, rawTargetBrand, rawSheet, setRawBrands, setRawSegments, setRawItem, setRawTargetBrand, setRawSheet]);
+        return '';
+    }, [displayState.brands, config.axes.brands]);
 
-    // バリデーション結果を適用するラッパー関数
-    const setBrands = useCallback((brands: string[]) => {
-        setRawBrands(brands);
-    }, [setRawBrands]);
+    // モード制約を考慮したセッター関数
+    const setBrands = useCallback((newBrands: string[]) => {
+        if (config.axes.brands?.allowMultiple === false) {
+            // SA（単一選択）の場合: brands[0]のみ置き換え、残りは保持
+            const currentBrands = brandsRef.current;
+            const updatedBrands = [newBrands[0], ...currentBrands.slice(1)].filter(Boolean);
+            unifiedStorage.setBrands(updatedBrands);
+        } else {
+            // MA（複数選択）の場合: そのまま設定
+            unifiedStorage.setBrands(newBrands);
+        }
+    }, [config.axes.brands?.allowMultiple, unifiedStorage.setBrands]);
 
-    const setSegments = useCallback((segments: string[]) => {
-        setRawSegments(segments);
-    }, [setRawSegments]);
+    const setSegments = useCallback((newSegments: string[]) => {
+        if (config.axes.segments?.allowMultiple === false) {
+            // SA（単一選択）の場合: segments[0]のみ置き換え、残りは保持
+            const currentSegments = segmentsRef.current;
+            const updatedSegments = [newSegments[0], ...currentSegments.slice(1)].filter(Boolean);
+            unifiedStorage.setSegments(updatedSegments);
+        } else {
+            // MA（複数選択）の場合: そのまま設定
+            unifiedStorage.setSegments(newSegments);
+        }
+    }, [config.axes.segments?.allowMultiple, unifiedStorage.setSegments]);
 
     const setItem = useCallback((item: string) => {
-        setRawItem(item);
-    }, [setRawItem]);
+        unifiedStorage.setItem(item);
+    }, [unifiedStorage.setItem]);
 
-    const setTargetBrand = useCallback((targetBrand: string) => {
-        setRawTargetBrand(targetBrand);
-    }, [setRawTargetBrand]);
+    const setTargetBrand = useCallback((brand: string) => {
+        // targetBrandの設定はbrands[0]の設定
+        setBrands([brand]);
+    }, [setBrands]);
 
-    const setSheet = useCallback((sheet: string) => {
-        setRawSheet(sheet);
-    }, [setRawSheet]);
+    // setSheet is deprecated - use setSegments([sheet, ...]) to change data source
 
     return {
-        // バリデーション済みの状態を返す
-        brands: validatedState.brands,
-        segments: validatedState.segments,
-        item: validatedState.item,
-        targetBrand: validatedState.targetBrand,
-        sheet: validatedState.sheet,
+        // 表示用の状態を返す（モード制約適用済み）
+        brands: displayState.brands,
+        segments: displayState.segments,
+        item: displayState.item,
+        targetBrand,
 
-        // セッター関数
+        // 生の値（ヘルパーメソッド用）
+        rawBrands: unifiedStorage.brands,
+        rawSegments: unifiedStorage.segments,
+
+        // セッター関数（モード制約を考慮）
         setBrands,
         setSegments,
         setItem,
         setTargetBrand,
-        setSheet,
     };
 };

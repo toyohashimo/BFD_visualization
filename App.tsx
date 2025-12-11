@@ -43,6 +43,7 @@ import { useMultiDataSource } from './src/hooks/useMultiDataSource';
 import { useGlobalMode } from './src/hooks/useGlobalMode';
 import { useExcelParser } from './src/hooks/useExcelParser';
 import { useAISettings } from './src/hooks/useAISettings';
+import { useUnifiedStorage } from './src/hooks/useUnifiedStorage';
 
 /**
  * メインアプリケーションコンポーネント (リファクタリング後)
@@ -116,13 +117,13 @@ const App: React.FC = () => {
     selectedSegments,
     selectedItem,
     targetBrand,
-    sheet,
+    currentSheet, // computed from segments[0]
     setMode: setAnalysisMode,
     setSelectedBrands,
     setSelectedSegments,
     setSelectedItem,
     setTargetBrand,
-    setSheet,
+    // setSheet removed - use setSelectedSegments
     addBrand: handleAddBrand,
     removeBrand: handleRemoveBrand,
     clearBrands: handleClearAllBrands,
@@ -130,6 +131,9 @@ const App: React.FC = () => {
     removeSegment: handleRemoveSegment,
     clearSegments: handleClearAllSegments,
   } = useAnalysisState();
+
+  // 統一ストレージ（ファイル読み込み時の直接保存用）
+  const unifiedStorage = useUnifiedStorage();
 
   // データが無い場合、モード1にリセット
   useEffect(() => {
@@ -148,15 +152,7 @@ const App: React.FC = () => {
     }
   }, [analysisMode, setAnalysisMode, currentModeConfigs, globalMode]);
 
-  // sheetの初期化
-  useEffect(() => {
-    if (hasValidData && !sheet) {
-      const firstSheet = Object.keys(data)[0];
-      if (firstSheet) {
-        setSheet(firstSheet);
-      }
-    }
-  }, [hasValidData, sheet, data, setSheet]);
+
 
   // チャート設定（過去比較モードではdataSourcesの有無で判定）
   const effectiveIsExcelData = globalMode === 'historical'
@@ -178,7 +174,9 @@ const App: React.FC = () => {
   }, [analysisMode, chartConfig.setChartType, currentModeConfigs]);
 
   // モード切り替え時のデフォルト選択設定
-  useEffect(() => {
+  // 注: 統一LocalStorage実装により、このロジックは無効化しました
+  // モード切り替え時は既存の選択状態を保持します
+  /* useEffect(() => {
     if (!hasValidData || !analysisMode) return;
 
     const config = currentModeConfigs[analysisMode];
@@ -243,7 +241,7 @@ const App: React.FC = () => {
       }
     }
   }, [analysisMode, hasValidData, data, sheet, targetBrand, selectedBrands, selectedSegments,
-    setTargetBrand, setSelectedBrands, setSheet, setSelectedSegments, currentModeConfigs]);
+    setTargetBrand, setSelectedBrands, setSheet, setSelectedSegments, currentModeConfigs]); */
 
   // 色マッピング
   const { brandColorIndices, segmentColorIndices } = useColorMapping(
@@ -312,16 +310,16 @@ const App: React.FC = () => {
       // 過去比較モード: dataSourcesから選択されたシートのブランドを抽出
       const brands = new Set<string>();
       dataSources.forEach(ds => {
-        if (ds.data && ds.data[sheet]) {
-          Object.keys(ds.data[sheet]).forEach(b => brands.add(b));
+        if (ds.data && ds.data[currentSheet]) {
+          Object.keys(ds.data[currentSheet]).forEach(b => brands.add(b));
         }
       });
       return Array.from(brands);
     } else {
       // 詳細分析モード: dataから選択されたシートのブランドを抽出
-      return Object.keys(data[sheet] || {});
+      return Object.keys(data[currentSheet] || {});
     }
-  }, [data, sheet, dataSources, globalMode]);
+  }, [data, currentSheet, dataSources, globalMode]);
 
   const availableSegments = useMemo(() => {
     if (globalMode === 'historical') {
@@ -355,25 +353,28 @@ const App: React.FC = () => {
     return brandMap[originalName] || '';
   }, [chartConfig.isAnonymized, brandMap]);
 
-  // モード1が自動選択された際に、ブランドとセグメントが未選択の場合は最初のものを自動選択
+  // 起動時にLocalStorageのブランド・セグメントをクリア（初回のみ）
   useEffect(() => {
-    if (hasValidData && analysisMode === 'funnel_segment_brands') {
-      // セグメントが未選択の場合、最初のセグメントを選択
-      if (!sheet && availableSegments.length > 0) {
-        setSheet(availableSegments[0]);
-      }
-      // ブランドが未選択の場合、最初のブランドを選択
-      if (selectedBrands.length === 0 && availableBrands.length > 0) {
-        setSelectedBrands([availableBrands[0]]);
-      }
+    const isFirstLoad = sessionStorage.getItem('app_initialized');
+    if (!isFirstLoad) {
+      console.log('[App] First load detected - clearing LocalStorage brands and segments');
+      setSelectedBrands([]);
+      setSelectedSegments([]);
+      sessionStorage.setItem('app_initialized', 'true');
     }
-  }, [hasValidData, analysisMode, sheet, availableSegments, selectedBrands, availableBrands, setSheet, setSelectedBrands]);
+
+    // Migration: Remove deprecated unified_sheet key
+    if (localStorage.getItem('unified_sheet')) {
+      console.log('[Migration] Removing deprecated unified_sheet from LocalStorage');
+      localStorage.removeItem('unified_sheet');
+    }
+  }, [setSelectedBrands, setSelectedSegments]);
 
   // CSV エクスポート
   const { exportCSV } = useCSVExport(
     data,
     analysisMode,
-    sheet,
+    currentSheet,
     targetBrand,
     selectedBrands,
     selectedSegments,
@@ -384,12 +385,7 @@ const App: React.FC = () => {
     brandImageData
   );
 
-  // targetBrandの初期化
-  useEffect(() => {
-    if (!targetBrand && allUniqueBrands.length > 0) {
-      setTargetBrand(allUniqueBrands[0]);
-    }
-  }, [allUniqueBrands, targetBrand, setTargetBrand]);
+
 
 
   // Helper functions
@@ -401,13 +397,13 @@ const App: React.FC = () => {
 
     if (role === 'FILTER') {
       switch (axisType) {
-        case 'segments': return sheet;
+        case 'segments': return currentSheet;
         case 'brands': return targetBrand;
         case 'items': return selectedItem;
       }
     }
     return '';
-  }, [analysisMode, sheet, targetBrand, selectedItem, currentModeConfigs]);
+  }, [analysisMode, currentSheet, targetBrand, selectedItem, currentModeConfigs]);
 
   const getSeriesValues = useCallback((axisType: AxisType): string[] => {
     if (!analysisMode) return [];
@@ -472,7 +468,7 @@ const App: React.FC = () => {
         return transformDataForHistoricalBrandsComparison(
           activeSources,
           config,
-          sheet, // selectedSegment
+          currentSheet, // selectedSegment
           selectedBrands, // 複数ブランド
           selectedItem || 'FT', // デフォルトはFT（認知）
           labelGetters
@@ -484,7 +480,7 @@ const App: React.FC = () => {
         return transformDataForHistoricalBrandsComparison(
           activeSources,
           config,
-          sheet, // selectedSegment
+          currentSheet, // selectedSegment
           selectedBrands, // 複数ブランド
           selectedItem || 'T1', // デフォルトはT1（直近1年以内）
           labelGetters
@@ -496,7 +492,7 @@ const App: React.FC = () => {
         return transformDataForHistoricalBrandImageBrandsComparison(
           activeSources,
           config,
-          sheet, // selectedSegment
+          currentSheet, // selectedSegment
           selectedBrands, // 複数ブランド
           selectedItem || '', // ブランドイメージ項目（TOP1がデフォルト）
           labelGetters,
@@ -509,7 +505,7 @@ const App: React.FC = () => {
         return transformDataForHistoricalBrandImage(
           activeSources,
           config,
-          sheet, // selectedSegment
+          currentSheet, // selectedSegment
           targetBrand, // selectedBrand
           labelGetters,
           brandImageData
@@ -520,7 +516,7 @@ const App: React.FC = () => {
       return transformDataForHistoricalChart(
         activeSources,
         config,
-        sheet, // selectedSegment
+        currentSheet, // selectedSegment
         targetBrand, // selectedBrand
         selectedItem,
         labelGetters
@@ -547,7 +543,7 @@ const App: React.FC = () => {
     analysisMode,
     globalMode,
     dataSources,
-    sheet,
+    currentSheet,
     targetBrand,
     selectedItem,
     getFilterValue,
@@ -564,11 +560,26 @@ const App: React.FC = () => {
     if (file) {
       loadFromFile(file).then((result) => {
         if (result) {
-          const firstSheet = Object.keys(result.sheetData)[0];
-          if (firstSheet) {
-            setSheet(firstSheet);
-            const brands = Object.keys(result.sheetData[firstSheet]).slice(0, 3);
-            setSelectedBrands(brands);
+          // 全セグメント（シート）を取得し、最初の3つを選択
+          const allSegments = Object.keys(result.sheetData);
+          const top3Segments = allSegments.slice(0, 3);
+
+          if (top3Segments.length > 0) {
+            // segments[0]がデータソース（シート）として機能
+            const firstSheet = top3Segments[0];
+
+            // そのシートから最初の3ブランドを取得
+            const allBrands = Object.keys(result.sheetData[firstSheet]);
+            const top3Brands = allBrands.slice(0, 3);
+
+            // LocalStorageに直接保存（モード制約を回避）
+            unifiedStorage.setSegments(top3Segments);
+            unifiedStorage.setBrands(top3Brands);
+
+            console.log('[App] File loaded - initialized with:', {
+              segments: top3Segments, // segments[0] is data source
+              brands: top3Brands
+            });
           }
         }
       }).catch((error) => {
@@ -586,11 +597,26 @@ const App: React.FC = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       loadFromFile(e.dataTransfer.files[0]).then((result) => {
         if (result) {
-          const firstSheet = Object.keys(result.sheetData)[0];
-          if (firstSheet) {
-            setSheet(firstSheet);
-            const brands = Object.keys(result.sheetData[firstSheet]).slice(0, 3);
-            setSelectedBrands(brands);
+          // 全セグメント（シート）を取得し、最初の3つを選択
+          const allSegments = Object.keys(result.sheetData);
+          const top3Segments = allSegments.slice(0, 3);
+
+          if (top3Segments.length > 0) {
+            // segments[0]がデータソース（シート）として機能
+            const firstSheet = top3Segments[0];
+
+            // そのシートから最初の3ブランドを取得
+            const allBrands = Object.keys(result.sheetData[firstSheet]);
+            const top3Brands = allBrands.slice(0, 3);
+
+            // LocalStorageに直接保存（モード制約を回避）
+            unifiedStorage.setSegments(top3Segments);
+            unifiedStorage.setBrands(top3Brands);
+
+            console.log('[App] File loaded - initialized with:', {
+              segments: top3Segments, // segments[0] is data source
+              brands: top3Brands
+            });
           }
         }
       }).catch((error) => {
@@ -598,7 +624,7 @@ const App: React.FC = () => {
         alert('ファイルの読み込みに失敗しました。');
       });
     }
-  }, [loadFromFile, setSheet, setSelectedBrands]);
+  }, [loadFromFile, unifiedStorage]);
 
   const handleMainAreaDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -637,8 +663,8 @@ const App: React.FC = () => {
       // 最初のデータソース追加時、シートとブランドを自動選択
       if (result.data && Object.keys(result.data).length > 0) {
         const firstSheet = Object.keys(result.data)[0];
-        if (firstSheet && !sheet) {
-          setSheet(firstSheet);
+        if (firstSheet && !currentSheet) {
+          setSelectedSegments([firstSheet]);
         }
 
         // ブランドが未選択の場合、最初のブランドを選択
@@ -650,7 +676,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [addDataSource, historicalParser.parseFromArrayBuffer, sheet, selectedBrands, setSheet, setSelectedBrands]);
+  }, [addDataSource, historicalParser.parseFromArrayBuffer, currentSheet, selectedBrands, setSelectedSegments, setSelectedBrands]);
 
   // 詳細分析モード：データクリア時の処理
   // 注意：このuseEffectは詳細分析モード専用で、過去比較モードの状態には影響しない
@@ -761,11 +787,26 @@ const App: React.FC = () => {
             onFileDrop={(file) => {
               loadFromFile(file).then((result) => {
                 if (result) {
-                  const firstSheet = Object.keys(result.sheetData)[0];
-                  if (firstSheet) {
-                    setSheet(firstSheet);
-                    const brands = Object.keys(result.sheetData[firstSheet]).slice(0, 3);
-                    setSelectedBrands(brands);
+                  // 全セグメント（シート）を取得し、最初の3つを選択
+                  const allSegments = Object.keys(result.sheetData);
+                  const top3Segments = allSegments.slice(0, 3);
+
+                  if (top3Segments.length > 0) {
+                    // segments[0]がデータソース（シート）として機能
+                    const firstSheet = top3Segments[0];
+
+                    // そのシートから最初の3ブランドを取得
+                    const allBrands = Object.keys(result.sheetData[firstSheet]);
+                    const top3Brands = allBrands.slice(0, 3);
+
+                    // LocalStorageに保存
+                    unifiedStorage.setSegments(top3Segments);
+                    unifiedStorage.setBrands(top3Brands);
+
+                    console.log('[App] File loaded - initialized with:', {
+                      segments: top3Segments, // segments[0] is data source
+                      brands: top3Brands
+                    });
                   }
                 }
               });
@@ -773,8 +814,8 @@ const App: React.FC = () => {
             onClearData={resetData}
             analysisMode={analysisMode}
             setAnalysisMode={setAnalysisMode}
-            sheet={sheet}
-            setSheet={setSheet}
+            currentSheet={currentSheet}
+            setSelectedSegments={setSelectedSegments}
             data={data}
             targetBrand={targetBrand}
             setTargetBrand={setTargetBrand}
@@ -842,7 +883,7 @@ const App: React.FC = () => {
               if (result) {
                 const firstSheet = Object.keys(result.sheetData)[0];
                 if (firstSheet) {
-                  setSheet(firstSheet);
+                  setSelectedSegments([firstSheet]);
                   const brands = Object.keys(result.sheetData[firstSheet]).slice(0, 3);
                   setSelectedBrands(brands);
                 }
@@ -852,8 +893,8 @@ const App: React.FC = () => {
           onClearData={resetData}
           analysisMode={analysisMode}
           setAnalysisMode={setAnalysisMode}
-          sheet={sheet}
-          setSheet={setSheet}
+          currentSheet={currentSheet}
+          setSelectedSegments={setSelectedSegments}
           data={data}
           targetBrand={targetBrand}
           setTargetBrand={setTargetBrand}
@@ -982,8 +1023,8 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-          ) : !sheet ? (
-            // データはあるがsheetが設定されていない場合: ローディング画面
+          ) : !currentSheet ? (
+            // データはあるがcurrentSheetが設定されていない場合: ローディング画面
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
@@ -995,7 +1036,7 @@ const App: React.FC = () => {
             <ChartArea
               globalMode={globalMode}
               analysisMode={analysisMode}
-              sheet={sheet}
+              currentSheet={currentSheet}
               targetBrand={targetBrand}
               selectedBrands={selectedBrands}
               selectedSegments={selectedSegments}
