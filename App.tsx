@@ -43,7 +43,7 @@ import { useMultiDataSource } from './src/hooks/useMultiDataSource';
 import { useGlobalMode } from './src/hooks/useGlobalMode';
 import { useExcelParser } from './src/hooks/useExcelParser';
 import { useAISettings } from './src/hooks/useAISettings';
-import { useUnifiedStorage } from './src/hooks/useUnifiedStorage';
+
 
 /**
  * メインアプリケーションコンポーネント (リファクタリング後)
@@ -132,8 +132,7 @@ const App: React.FC = () => {
     clearSegments: handleClearAllSegments,
   } = useAnalysisState();
 
-  // 統一ストレージ（ファイル読み込み時の直接保存用）
-  const unifiedStorage = useUnifiedStorage();
+
 
   // データが無い場合、モード1にリセット
   useEffect(() => {
@@ -572,9 +571,9 @@ const App: React.FC = () => {
             const allBrands = Object.keys(result.sheetData[firstSheet]);
             const top3Brands = allBrands.slice(0, 3);
 
-            // LocalStorageに直接保存（モード制約を回避）
-            unifiedStorage.setSegments(top3Segments);
-            unifiedStorage.setBrands(top3Brands);
+            // React stateを使用して保存（LocalStorageと同期される）
+            setSelectedSegments(top3Segments);
+            setSelectedBrands(top3Brands);
 
             console.log('[App] File loaded - initialized with:', {
               segments: top3Segments, // segments[0] is data source
@@ -609,9 +608,9 @@ const App: React.FC = () => {
             const allBrands = Object.keys(result.sheetData[firstSheet]);
             const top3Brands = allBrands.slice(0, 3);
 
-            // LocalStorageに直接保存（モード制約を回避）
-            unifiedStorage.setSegments(top3Segments);
-            unifiedStorage.setBrands(top3Brands);
+            // React stateを使用して保存（LocalStorageと同期される）
+            setSelectedSegments(top3Segments);
+            setSelectedBrands(top3Brands);
 
             console.log('[App] File loaded - initialized with:', {
               segments: top3Segments, // segments[0] is data source
@@ -624,7 +623,7 @@ const App: React.FC = () => {
         alert('ファイルの読み込みに失敗しました。');
       });
     }
-  }, [loadFromFile, unifiedStorage]);
+  }, [loadFromFile, setSelectedSegments, setSelectedBrands]);
 
   const handleMainAreaDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -799,9 +798,9 @@ const App: React.FC = () => {
                     const allBrands = Object.keys(result.sheetData[firstSheet]);
                     const top3Brands = allBrands.slice(0, 3);
 
-                    // LocalStorageに保存
-                    unifiedStorage.setSegments(top3Segments);
-                    unifiedStorage.setBrands(top3Brands);
+                    // React stateを使用して保存（LocalStorageと同期される）
+                    setSelectedSegments(top3Segments);
+                    setSelectedBrands(top3Brands);
 
                     console.log('[App] File loaded - initialized with:', {
                       segments: top3Segments, // segments[0] is data source

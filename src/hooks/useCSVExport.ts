@@ -4,6 +4,8 @@ import {
   AnalysisMode,
   SheetData,
   FunnelMetrics,
+  ArchetypeMetrics,
+  AllMetrics,
   AnalysisModeConfig,
   AxisType,
   GlobalMode,
@@ -216,8 +218,11 @@ export const useCSVExport = (
             if (config.axes.items?.itemSet === 'brandImage') {
               // Brand Image mode
               value = getBrandImageValue(sheet, seriesKey, xKey);
+            } else if (config.axes.items?.itemSet === 'archetype') {
+              // Archetype mode - access nested archetypeMetrics
+              value = sheetData?.[seriesKey]?.archetypeMetrics?.[xKey as keyof ArchetypeMetrics] || 0;
             } else {
-              // Funnel, Timeline, Brand Power, Future Power, Archetype modes
+              // Funnel, Timeline, Brand Power, Future Power modes
               value = sheetData?.[seriesKey]?.[xKey as keyof FunnelMetrics] || 0;
             }
           }
@@ -228,6 +233,9 @@ export const useCSVExport = (
             if (config.axes.items?.itemSet === 'brandImage') {
               // Brand Image mode
               value = getBrandImageValue(seriesKey, targetBrand, xKey);
+            } else if (config.axes.items?.itemSet === 'archetype') {
+              // Archetype mode - access nested archetypeMetrics
+              value = data[seriesKey]?.[targetBrand]?.archetypeMetrics?.[xKey as keyof ArchetypeMetrics] || 0;
             } else {
               value = data[seriesKey]?.[targetBrand]?.[xKey as keyof FunnelMetrics] || 0;
             }
@@ -322,6 +330,9 @@ export const useCSVExport = (
             if (config.axes.items?.itemSet === 'brandImage') {
               // Historical Brand Image mode
               value = getBrandImageValue(sheet, targetBrand, xKey);
+            } else if (config.axes.items?.itemSet === 'archetype') {
+              // Historical Archetype mode - access nested archetypeMetrics
+              value = (brandData as AllMetrics).archetypeMetrics?.[xKey as keyof ArchetypeMetrics] || 0;
             } else {
               value = brandData[xKey as keyof FunnelMetrics] || 0;
             }
