@@ -7,29 +7,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { DataSource, MultiDataSourceState } from '../types/dataSource';
-
-/**
- * LocalStorage用の軽量メタデータ型
- * 実データは含めず、メタ情報のみ
- */
-interface DataSourceMetadata {
-  id: string;
-  name: string;
-  fileName: string;
-  uploadedAt: string; // Date -> string
-  isActive: boolean;
-}
-
-interface MetadataState {
-  metadata: DataSourceMetadata[];
-  currentSourceId: string | null;
-}
+import { useUnifiedStorage, DataSourceMetadata } from './useUnifiedStorage';
 
 /**
  * データソース管理フック
  * 過去比較モード専用（詳細分析モードとは独立）
  */
 export const useMultiDataSource = () => {
+  // 統一LocalStorage管理（メタデータのみ永続化）
+  const { historicalFiles, setHistoricalFiles } = useUnifiedStorage();
+
   // 実データはメモリ上のみ（LocalStorageには保存しない）
   // 過去比較モード専用の状態
   const [state, setState] = useState<MultiDataSourceState>({
@@ -37,9 +24,9 @@ export const useMultiDataSource = () => {
     currentSourceId: null
   });
 
-  // 注意: データソースはメモリ上でのみ管理し、LocalStorageには保存しません
-  // リロード時にはデータソースはクリアされます（実データが大きすぎるため）
-  // この状態は過去比較モード専用です
+  // 注意: 実データ（data, brandImageData）はメモリ上でのみ管理し、LocalStorageには保存しません
+  // メタデータ（id, name, fileName, uploadedAt, isActive）はLocalStorageに保存されます
+  // リロード時には実データはクリアされますが、メタデータは復元されます
 
   /**
    * ファイル名から期間名を抽出
@@ -152,6 +139,36 @@ export const useMultiDataSource = () => {
             currentSourceId: prevState.currentSourceId || dataSource.id
           };
 
+          // メタデータをLocalStorageに保存
+          const metadata: DataSourceMetadata[] = newDataSources.map(ds => ({
+            id: ds.id,
+            name: ds.name,
+            fileName: ds.fileName,
+            uploadedAt: ds.uploadedAt.toISOString(),
+            isActive: ds.isActive
+          }));
+          setHistoricalFiles(metadata);
+
+          // 最初のデータソース追加時、セグメント・ブランドを自動選択
+          if (newDataSources.length === 1 && dataSource.data) {
+            const sheets = Object.keys(dataSource.data);
+            if (sheets.length > 0) {
+              // セグメント（シート）の自動選択: 最初の3つ
+              const top3Segments = sheets.slice(0, 3);
+
+              // ブランドの自動選択: 最初のシートから最初の3つ
+              const firstSheet = sheets[0];
+              const brands = Object.keys(dataSource.data[firstSheet] || {});
+              const top3Brands = brands.slice(0, 3);
+
+              // unifiedStorageを使用してモード制約をバイパス
+              if (top3Segments.length > 0) {
+                // グローバルスコープからunifiedStorageにアクセスする必要があるため、
+                // ここでは初期化を呼び出し側（Sidebar.tsx）で行う
+              }
+            }
+          }
+
           resolve(dataSource);
           return newState;
         });
@@ -161,7 +178,7 @@ export const useMultiDataSource = () => {
       alert('ファイルの読み込みに失敗しました。');
       return null;
     }
-  }, [extractDateFromFilename]);
+  }, [extractDateFromFilename, setHistoricalFiles]);
 
   /**
    * データソース削除
@@ -181,7 +198,17 @@ export const useMultiDataSource = () => {
       currentSourceId: newCurrentSourceId
     };
     setState(newState);
-  }, [state]);
+
+    // メタデータをLocalStorageに保存
+    const metadata: DataSourceMetadata[] = newDataSources.map(ds => ({
+      id: ds.id,
+      name: ds.name,
+      fileName: ds.fileName,
+      uploadedAt: ds.uploadedAt.toISOString(),
+      isActive: ds.isActive
+    }));
+    setHistoricalFiles(metadata);
+  }, [state, setHistoricalFiles]);
 
   /**
    * データソース名更新
@@ -205,7 +232,17 @@ export const useMultiDataSource = () => {
       )
     };
     setState(newState);
-  }, [state]);
+
+    // メタデータをLocalStorageに保存
+    const metadata: DataSourceMetadata[] = newState.dataSources.map(ds => ({
+      id: ds.id,
+      name: ds.name,
+      fileName: ds.fileName,
+      uploadedAt: ds.uploadedAt.toISOString(),
+      isActive: ds.isActive
+    }));
+    setHistoricalFiles(metadata);
+  }, [state, setHistoricalFiles]);
 
   /**
    * データソースの表示/非表示切り替え
@@ -233,7 +270,17 @@ export const useMultiDataSource = () => {
       )
     };
     setState(newState);
-  }, [state]);
+
+    // メタデータをLocalStorageに保存
+    const metadata: DataSourceMetadata[] = newState.dataSources.map(ds => ({
+      id: ds.id,
+      name: ds.name,
+      fileName: ds.fileName,
+      uploadedAt: ds.uploadedAt.toISOString(),
+      isActive: ds.isActive
+    }));
+    setHistoricalFiles(metadata);
+  }, [state, setHistoricalFiles]);
 
   /**
    * 現在のデータソース設定（詳細分析モード用）
@@ -297,7 +344,10 @@ export const useMultiDataSource = () => {
       currentSourceId: null
     };
     setState(newState);
-  }, []);
+
+    // メタデータをLocalStorageからクリア
+    setHistoricalFiles([]);
+  }, [setHistoricalFiles]);
 
   return {
     // 状態

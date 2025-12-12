@@ -43,6 +43,7 @@ import { useMultiDataSource } from './src/hooks/useMultiDataSource';
 import { useGlobalMode } from './src/hooks/useGlobalMode';
 import { useExcelParser } from './src/hooks/useExcelParser';
 import { useAISettings } from './src/hooks/useAISettings';
+import { useUnifiedStorage } from './src/hooks/useUnifiedStorage';
 
 
 /**
@@ -109,6 +110,9 @@ const App: React.FC = () => {
       return Object.keys(data).length > 0;
     }
   }, [data, dataSources, globalMode]);
+
+  // 統一ストレージ（モード制約をバイパスする場合に使用）
+  const unifiedStorage = useUnifiedStorage();
 
   // 分析状態 (モード、選択項目)
   const {
@@ -303,6 +307,34 @@ const App: React.FC = () => {
       return Array.from(brands);
     }
   }, [data, dataSources, globalMode]);
+
+  // ブランドの可用性を追跡（ハイブリッドアプローチ）
+  const brandAvailability = useMemo(() => {
+    if (globalMode !== 'historical' || !currentSheet) return [];
+
+    const availability = new Map<string, Set<string>>();
+
+    dataSources.forEach(ds => {
+      if (ds.data && ds.data[currentSheet]) {
+        const brands = Object.keys(ds.data[currentSheet]);
+        brands.forEach(brand => {
+          if (!availability.has(brand)) {
+            availability.set(brand, new Set());
+          }
+          availability.get(brand)!.add(ds.name); // ファイル名を追加
+        });
+      }
+    });
+
+    const activeFileCount = dataSources.filter(ds => ds.isActive).length;
+
+    return Array.from(availability.entries()).map(([brand, fileNames]) => ({
+      brand,
+      availableInFiles: Array.from(fileNames),
+      fileCount: fileNames.size,
+      totalFiles: activeFileCount
+    }));
+  }, [globalMode, dataSources, currentSheet]);
 
   const availableBrands = useMemo(() => {
     if (globalMode === 'historical') {
@@ -571,9 +603,9 @@ const App: React.FC = () => {
             const allBrands = Object.keys(result.sheetData[firstSheet]);
             const top3Brands = allBrands.slice(0, 3);
 
-            // React stateを使用して保存（LocalStorageと同期される）
-            setSelectedSegments(top3Segments);
-            setSelectedBrands(top3Brands);
+            // unifiedStorageを直接使用（モード制約をバイパス）
+            unifiedStorage.setSegments(top3Segments);
+            unifiedStorage.setBrands(top3Brands);
 
             console.log('[App] File loaded - initialized with:', {
               segments: top3Segments, // segments[0] is data source
@@ -608,9 +640,9 @@ const App: React.FC = () => {
             const allBrands = Object.keys(result.sheetData[firstSheet]);
             const top3Brands = allBrands.slice(0, 3);
 
-            // React stateを使用して保存（LocalStorageと同期される）
-            setSelectedSegments(top3Segments);
-            setSelectedBrands(top3Brands);
+            // unifiedStorageを直接使用（モード制約をバイパス）
+            unifiedStorage.setSegments(top3Segments);
+            unifiedStorage.setBrands(top3Brands);
 
             console.log('[App] File loaded - initialized with:', {
               segments: top3Segments, // segments[0] is data source
@@ -623,7 +655,7 @@ const App: React.FC = () => {
         alert('ファイルの読み込みに失敗しました。');
       });
     }
-  }, [loadFromFile, setSelectedSegments, setSelectedBrands]);
+  }, [loadFromFile, unifiedStorage]);
 
   const handleMainAreaDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -648,6 +680,9 @@ const App: React.FC = () => {
     }
   };
 
+  // 過去比較モード初期化の追跡用ref
+  const historicalInitializedRef = useRef(false);
+
   // データソース追加ハンドラ（過去比較モード用）
   const handleAddDataSource = useCallback(async (file: File) => {
     // 過去比較モード専用のパーサーを使用（useDataManagementの状態に影響しない）
@@ -659,23 +694,35 @@ const App: React.FC = () => {
     if (result) {
       console.log(`データソース「${result.name}」を追加しました`);
 
-      // 最初のデータソース追加時、シートとブランドを自動選択
-      if (result.data && Object.keys(result.data).length > 0) {
-        const firstSheet = Object.keys(result.data)[0];
-        if (firstSheet && !currentSheet) {
-          setSelectedSegments([firstSheet]);
-        }
+      // 最初のデータソース追加時のみ初期化（refで重複防止）
+      if (!historicalInitializedRef.current && result.data) {
+        const sheets = Object.keys(result.data);
+        if (sheets.length > 0) {
+          const top3Segments = sheets.slice(0, 3);
+          const firstSheet = sheets[0];
+          const allBrands = Object.keys(result.data[firstSheet] || {});
+          const top3Brands = allBrands.slice(0, 3);
 
-        // ブランドが未選択の場合、最初のブランドを選択
-        if (selectedBrands.length === 0 && result.data[firstSheet]) {
-          const firstBrand = Object.keys(result.data[firstSheet])[0];
-          if (firstBrand) {
-            setSelectedBrands([firstBrand]);
+          if (top3Segments.length > 0 && top3Brands.length > 0) {
+            // setSelectedBrands/setSelectedSegmentsを使用してReact stateを更新
+            // これにより確実にチャートが再レンダリングされる
+            setSelectedSegments(top3Segments);
+            setSelectedBrands(top3Brands);
+            historicalInitializedRef.current = true;
           }
         }
       }
     }
-  }, [addDataSource, historicalParser.parseFromArrayBuffer, currentSheet, selectedBrands, setSelectedSegments, setSelectedBrands]);
+    return result;
+  }, [addDataSource, historicalParser.parseFromArrayBuffer, setSelectedBrands, setSelectedSegments]);
+
+  // モード変更時に初期化フラグをリセット
+  useEffect(() => {
+    if (globalMode !== 'historical') {
+      historicalInitializedRef.current = false;
+    }
+  }, [globalMode]);
+
 
   // 詳細分析モード：データクリア時の処理
   // 注意：このuseEffectは詳細分析モード専用で、過去比較モードの状態には影響しない
@@ -798,9 +845,9 @@ const App: React.FC = () => {
                     const allBrands = Object.keys(result.sheetData[firstSheet]);
                     const top3Brands = allBrands.slice(0, 3);
 
-                    // React stateを使用して保存（LocalStorageと同期される）
-                    setSelectedSegments(top3Segments);
-                    setSelectedBrands(top3Brands);
+                    // unifiedStorageを直接使用（モード制約をバイパス）
+                    unifiedStorage.setSegments(top3Segments);
+                    unifiedStorage.setBrands(top3Brands);
 
                     console.log('[App] File loaded - initialized with:', {
                       segments: top3Segments, // segments[0] is data source
@@ -835,6 +882,7 @@ const App: React.FC = () => {
             handleAddBrand={handleAddBrand}
             availableBrands={availableBrands}
             selectedBrands={selectedBrands}
+            brandAvailability={brandAvailability}
             handleAddSegment={handleAddSegment}
             availableSegments={availableSegments}
             selectedSegments={selectedSegments}

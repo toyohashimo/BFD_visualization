@@ -71,6 +71,12 @@ interface SidebarProps {
     setTargetBrand: (brand: string) => void;
     allUniqueBrands: string[];
     getBrandName: (name: string) => string;
+    brandAvailability?: Array<{
+        brand: string;
+        fileCount: number;
+        totalFiles: number;
+        availableInFiles: string[];
+    }>;
     selectedItem: keyof FunnelMetrics | keyof TimelineMetrics;
     setSelectedItem: (item: keyof FunnelMetrics | keyof TimelineMetrics) => void;
     chartType: ChartType;
@@ -133,6 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setTargetBrand,
     allUniqueBrands,
     getBrandName,
+    brandAvailability,
     selectedItem,
     setSelectedItem,
     chartType,
@@ -223,6 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     let failedFiles: string[] = [];
 
                     // 3つのファイルを順次読み込み
+                    let firstResult: any = null;
                     for (const fileName of sampleFiles) {
                         try {
                             console.log(`読み込み中: ${fileName}`);
@@ -241,7 +249,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                             });
 
-                            await onAddDataSource(file);
+                            const result = await onAddDataSource(file);
+                            if (result && !firstResult) {
+                                firstResult = result;
+                            }
                             successCount++;
                             console.log(`✓ ${fileName} を読み込みました`);
                         } catch (fileError) {
@@ -489,6 +500,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setTargetBrand={setTargetBrand}
                     allUniqueBrands={allUniqueBrands}
                     getBrandName={getBrandName}
+                    brandAvailability={brandAvailability}
                     selectedBrands={selectedBrands}
                     availableBrands={availableBrands}
                     handleAddBrand={handleAddBrand}

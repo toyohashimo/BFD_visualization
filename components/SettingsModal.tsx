@@ -84,11 +84,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     }
   };
 
-  const handleClearLocalStorage = () => {
-    if (confirm('LocalStorageを削除しますか?\n\n全ての設定がクリアされ、ページがリロードされます。')) {
-      localStorage.clear();
-      window.location.reload();
-    }
+  const handleClearLocalStorage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log('[Settings] LocalStorage delete button clicked');
+
+    // setTimeout to ensure confirm dialog appears after React event cycle
+    setTimeout(() => {
+      console.log('[Settings] About to show confirm dialog...');
+
+      const userConfirmed = confirm('LocalStorageを削除しますか?\n\n全ての設定がクリアされ、ページがリロードされます。');
+      console.log('[Settings] Confirm dialog result:', userConfirmed);
+
+      if (userConfirmed) {
+        console.log('[Settings] Clearing localStorage and reloading...');
+        localStorage.clear();
+        window.location.reload();
+      } else {
+        console.log('[Settings] LocalStorage deletion cancelled');
+      }
+    }, 0);
   };
 
   return (

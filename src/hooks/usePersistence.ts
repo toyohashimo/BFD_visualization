@@ -55,13 +55,6 @@ export const usePersistence = <T>(
           // 関数の場合は前の値を渡して実行
           const valueToStore = value instanceof Function ? value(prevState) : value;
 
-          // デバッグログ: LocalStorage書き込みを追跡
-          console.log(`[usePersistence.setValue] key="${key}"`, {
-            oldValue: prevState,
-            newValue: valueToStore,
-            stack: new Error().stack
-          });
-
           // localStorageに保存
           localStorage.setItem(key, JSON.stringify(valueToStore));
 

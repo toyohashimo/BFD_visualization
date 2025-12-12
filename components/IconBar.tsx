@@ -50,16 +50,29 @@ export const IconBar: React.FC<IconBarProps> = ({
         { target: 'combined', icon: <ImageIcon className="w-5 h-5" />, label: 'グラフ＋データ' }
     ];
 
-    // デバッグモード: Shift+ダブルクリックでデバッグモードをトグル
+    // 隠しコマンド:
+    // - Shift+ダブルクリック: デバッグモードをトグル
+    // - Ctrl+ダブルクリック: LocalStorageをクリアしてリロード
     const handleDebugClick = (e: React.MouseEvent) => {
-        if (!e.shiftKey) return;
+        // Ctrl+ダブルクリック: LocalStorageをクリアしてリロード
+        if (e.ctrlKey) {
+            e.stopPropagation();
+            console.log('[Hidden Command] Clearing LocalStorage and reloading...');
+            localStorage.clear();
+            window.location.reload();
+            return;
+        }
 
-        // デバッグモードをトグル
-        if (onToggleDebugMode) {
-            onToggleDebugMode();
-            console.log('[Debug Mode] Toggled:', !isDebugMode ? 'ON' : 'OFF');
-        } else {
-            console.warn('[Debug Mode] onToggleDebugMode callback not provided');
+        // Shift+ダブルクリック: デバッグモードをトグル
+        if (e.shiftKey) {
+            e.stopPropagation();
+            if (onToggleDebugMode) {
+                onToggleDebugMode();
+                console.log('[Debug Mode] Toggled:', !isDebugMode ? 'ON' : 'OFF');
+            } else {
+                console.warn('[Debug Mode] onToggleDebugMode callback not provided');
+            }
+            return;
         }
     };
 

@@ -12,10 +12,10 @@ import {
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { SortableBrandItem } from './SortableBrandItem';
-import { AnalysisMode, GlobalMode } from '../types';
-import { 
-    ANALYSIS_MODE_CONFIGS, 
-    HISTORICAL_ANALYSIS_MODE_CONFIGS 
+import { AnalysisMode, GlobalMode } from '../src/types';
+import {
+    ANALYSIS_MODE_CONFIGS,
+    HISTORICAL_ANALYSIS_MODE_CONFIGS
 } from '../constants/analysisConfigs';
 
 interface BrandsSectionProps {
@@ -25,6 +25,12 @@ interface BrandsSectionProps {
     setTargetBrand: (brand: string) => void;
     allUniqueBrands: string[];
     getBrandName: (name: string) => string;
+    brandAvailability?: Array<{
+        brand: string;
+        fileCount: number;
+        totalFiles: number;
+        availableInFiles: string[];
+    }>;
     selectedBrands: string[];
     availableBrands: string[];
     handleAddBrand: (brand: string) => void;
@@ -43,6 +49,7 @@ export const BrandsSection: React.FC<BrandsSectionProps> = ({
     setTargetBrand,
     allUniqueBrands,
     getBrandName,
+    brandAvailability,
     selectedBrands,
     availableBrands,
     handleAddBrand,
@@ -58,10 +65,10 @@ export const BrandsSection: React.FC<BrandsSectionProps> = ({
         return null;
     }
 
-    const currentModeConfigs = globalMode === 'historical' 
-        ? HISTORICAL_ANALYSIS_MODE_CONFIGS 
+    const currentModeConfigs = globalMode === 'historical'
+        ? HISTORICAL_ANALYSIS_MODE_CONFIGS
         : ANALYSIS_MODE_CONFIGS;
-    
+
     const config = currentModeConfigs[analysisMode];
     if (!config) {
         return null;
@@ -70,14 +77,14 @@ export const BrandsSection: React.FC<BrandsSectionProps> = ({
     const itemsConfig = config.axes.items;
 
     // 過去比較モード時は基本的にSA（単一選択）だが、Mode 2/4/6は例外（複数選択）
-    const isMode2Or4Or6 = analysisMode === 'historical_funnel1_brands_comparison' 
-                       || analysisMode === 'historical_funnel2_brands_comparison'
-                       || analysisMode === 'historical_brand_image_brands_comparison';
-    const allowMultiple = globalMode === 'historical' 
+    const isMode2Or4Or6 = analysisMode === 'historical_funnel1_brands_comparison'
+        || analysisMode === 'historical_funnel2_brands_comparison'
+        || analysisMode === 'historical_brand_image_brands_comparison';
+    const allowMultiple = globalMode === 'historical'
         ? (isMode2Or4Or6 ? true : false)  // Mode 2/4/6のみ複数選択を許可
         : brandsConfig.allowMultiple;
     const badge = allowMultiple ? 'MA' : 'SA';
-    
+
     // Check if brand image mode (auto-select mode)
     const isBrandImageMode = itemsConfig.autoSelect === true;
 
@@ -94,13 +101,28 @@ export const BrandsSection: React.FC<BrandsSectionProps> = ({
             {!allowMultiple ? (
                 <div className="relative">
                     <select
-                        value={targetBrand}
-                        onChange={(e) => setTargetBrand(e.target.value)}
+                        value={selectedBrands[0] || ''}
+                        onChange={(e) => {
+                            if (e.target.value) {
+                                // setTargetBrand を使って更新
+                                // これは内部的に setBrands([value]) を呼ぶ
+                                setTargetBrand(e.target.value);
+                            }
+                        }}
                         className="w-full p-2.5 pr-8 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer"
                     >
-                        {allUniqueBrands.map(b => (
-                            <option key={b} value={b}>{getBrandName(b)}</option>
-                        ))}
+                        {allUniqueBrands.length === 0 && <option value="">ブランドを選択...</option>}
+                        {allUniqueBrands.map(b => {
+                            const availability = brandAvailability?.find(a => a.brand === b);
+                            const hasPartialData = availability && availability.fileCount < availability.totalFiles;
+
+                            return (
+                                <option key={b} value={b}>
+                                    {getBrandName(b)}
+                                    {hasPartialData && ` ⚠ (${availability.fileCount}/${availability.totalFiles})`}
+                                </option>
+                            );
+                        })}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
                         <ChevronDown className="w-4 h-4" />
