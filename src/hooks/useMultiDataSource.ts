@@ -73,6 +73,7 @@ export const useMultiDataSource = () => {
             return prevState;
           }
 
+
           const newDataSources = [...prevState.dataSources, dataSource];
           const newState = {
             dataSources: newDataSources,
@@ -87,7 +88,9 @@ export const useMultiDataSource = () => {
             uploadedAt: ds.uploadedAt.toISOString(),
             isActive: ds.isActive
           }));
+          console.log('[useMultiDataSource] unified_historical_filesを更新:', metadata);
           setHistoricalFiles(metadata);
+          console.log('[useMultiDataSource] setHistoricalFiles完了');
 
           // 最初のデータソース追加時、セグメント・ブランドを自動選択
           if (newDataSources.length === 1 && dataSource.data) {
@@ -273,7 +276,19 @@ export const useMultiDataSource = () => {
       currentSourceId: state.currentSourceId || dataSource.id
     };
     setState(newState);
-  }, [state]);
+
+    // メタデータをLocalStorageに保存（addDataSourceと同じロジック）
+    const metadata: DataSourceMetadata[] = newDataSources.map(ds => ({
+      id: ds.id,
+      name: ds.name,
+      fileName: ds.fileName,
+      uploadedAt: typeof ds.uploadedAt === 'string' ? ds.uploadedAt : ds.uploadedAt.toISOString(),
+      isActive: ds.isActive
+    }));
+    console.log('[addDirectDataSource] unified_historical_filesを更新:', metadata);
+    setHistoricalFiles(metadata);
+    console.log('[addDirectDataSource] setHistoricalFiles完了');
+  }, [state, setHistoricalFiles]);
 
   /**
    * 全データソースクリア

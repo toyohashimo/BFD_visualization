@@ -80,14 +80,34 @@ export const useUnifiedStorage = () => {
         []
     );
 
-    // バリデーション付きセッター
+    // 重複排除ユーティリティ関数
+    const removeDuplicates = <T,>(array: T[]): T[] => {
+        const seen = new Set<T>();
+        return array.filter(item => {
+            if (seen.has(item)) {
+                return false;
+            }
+            seen.add(item);
+            return true;
+        });
+    };
+
+    // バリデーション付きセッター（重複自動排除）
     const setBrands = useCallback((brands: string[]) => {
-        const validated = validateSelections(brands, MAX_SELECTIONS);
+        const uniqueBrands = removeDuplicates(brands);
+        if (brands.length !== uniqueBrands.length) {
+            console.log('[useUnifiedStorage] ブランド重複検出・排除:', brands, '→', uniqueBrands);
+        }
+        const validated = validateSelections(uniqueBrands, MAX_SELECTIONS);
         setRawBrands(validated);
     }, [setRawBrands]);
 
     const setSegments = useCallback((segments: string[]) => {
-        const validated = validateSelections(segments, MAX_SELECTIONS);
+        const uniqueSegments = removeDuplicates(segments);
+        if (segments.length !== uniqueSegments.length) {
+            console.log('[useUnifiedStorage] セグメント重複検出・排除:', segments, '→', uniqueSegments);
+        }
+        const validated = validateSelections(uniqueSegments, MAX_SELECTIONS);
         setRawSegments(validated);
     }, [setRawSegments]);
 

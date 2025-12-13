@@ -4,11 +4,29 @@ import { useModeState } from './useModeState';
 import { AnalysisMode } from '../types';
 import { STORAGE_KEYS, LIMITS, MESSAGES } from '../config/constants';
 import { ANALYSIS_MODE_CONFIGS, HISTORICAL_ANALYSIS_MODE_CONFIGS } from '../../constants/analysisConfigs';
+import { useUnifiedStorage } from './useUnifiedStorage';
+
+/**
+ * 配列から重複を排除（順序を保持、最初の出現を保持）
+ */
+const removeDuplicates = <T>(array: T[]): T[] => {
+  const seen = new Set<T>();
+  return array.filter(item => {
+    if (seen.has(item)) {
+      return false;
+    }
+    seen.add(item);
+    return true;
+  });
+};
 
 /**
  * 分析状態管理フック（モードごとの選択状態保存対応版）
  */
 export const useAnalysisState = () => {
+  // 統一ストレージにアクセス
+  const unifiedStorage = useUnifiedStorage();
+
   // 現在のモードID（全モード共通）
   const [mode, setModeInternal] = usePersistence<AnalysisMode>(
     STORAGE_KEYS.ANALYSIS_MODE,
@@ -27,8 +45,39 @@ export const useAnalysisState = () => {
   const setMode = useCallback((newMode: AnalysisMode) => {
     console.log(`[Mode Switch] ${mode} → ${newMode}`);
 
+    // 現在と新しいモードの設定を取得
+    const currentConfig = ANALYSIS_MODE_CONFIGS[mode] || HISTORICAL_ANALYSIS_MODE_CONFIGS[mode];
+    const newConfig = ANALYSIS_MODE_CONFIGS[newMode] || HISTORICAL_ANALYSIS_MODE_CONFIGS[newMode];
+
+    console.log('[useAnalysisState] モード設定:', {
+      current: { mode, brandsMultiple: currentConfig?.axes?.brands?.allowMultiple },
+      new: { mode: newMode, brandsMultiple: newConfig?.axes?.brands?.allowMultiple }
+    });
+
+    // SA→MA切り替えの検知（ブランド）
+    const isBrandsSAtoMA =
+      currentConfig?.axes?.brands?.allowMultiple === false &&
+      newConfig?.axes?.brands?.allowMultiple !== false;
+
+    // SA→MA切り替えの検知（セグメント）
+    const isSegmentsSAtoMA =
+      currentConfig?.axes?.segments?.allowMultiple === false &&
+      newConfig?.axes?.segments?.allowMultiple !== false;
+
+    // ブランドの重複排除（modeStateから取得）
+    const currentBrands = modeState.rawBrands || modeState.brands;
+    const currentSegments = modeState.rawSegments || modeState.segments;
+
+    console.log('[useAnalysisState] 切り替え検知:', {
+      isBrandsSAtoMA,
+      isSegmentsSAtoMA,
+      currentBrands,
+      currentSegments
+    });
+
     // 統一ストレージを使用しているため、モード間でデータは自動的に共有される
     // モード固有のバリデーションはuseModeStateで実行される
+    // 重複排除はuseUnifiedStorageのsetBrands/setSegmentsで自動的に処理される
     setModeInternal(newMode);
   }, [mode, setModeInternal]);
 

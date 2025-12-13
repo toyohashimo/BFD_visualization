@@ -94,7 +94,9 @@ const App: React.FC = () => {
     currentFileName,
     isLoading: isDataLoading,
     loadFromFile,
+    loadFromFileWithMetadata,
     loadFromArrayBuffer,
+    setDataDirect,
     reset: resetData,
     hasData: hasDataFromHook,
   } = useDataManagement();
@@ -542,12 +544,28 @@ const App: React.FC = () => {
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      loadFromFile(file).then((result) => {
-        initializeFromLoadResult(result);
-      }).catch((error) => {
-        console.error(error);
-        alert('ファイルの読み込みに失敗しました。');
-      });
+      // 詳細分析モードの場合、統一メタデータを更新
+      if (globalMode === 'detailed') {
+        loadFromFileWithMetadata(file, (metadata) => {
+          // unified_historical_filesの最後に追加（最大5個まで）
+          const currentFiles = unifiedStorage.historicalFiles;
+          const newFiles = [...currentFiles, metadata].slice(-5); // 最後の5個を保持
+          unifiedStorage.setHistoricalFiles(newFiles);
+        }).then((result) => {
+          initializeFromLoadResult(result);
+        }).catch((error) => {
+          console.error(error);
+          alert('ファイルの読み込みに失敗しました。');
+        });
+      } else {
+        // 過去比較モードの場合は従来通り
+        loadFromFile(file).then((result) => {
+          initializeFromLoadResult(result);
+        }).catch((error) => {
+          console.error(error);
+          alert('ファイルの読み込みに失敗しました。');
+        });
+      }
     }
   };
 
@@ -557,14 +575,30 @@ const App: React.FC = () => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      loadFromFile(e.dataTransfer.files[0]).then((result) => {
-        initializeFromLoadResult(result);
-      }).catch((error) => {
-        console.error(error);
-        alert('ファイルの読み込みに失敗しました。');
-      });
+      const file = e.dataTransfer.files[0];
+      // 詳細分析モードの場合、統一メタデータを更新
+      if (globalMode === 'detailed') {
+        loadFromFileWithMetadata(file, (metadata) => {
+          // unified_historical_filesの最後に追加（最大5個まで）
+          const currentFiles = unifiedStorage.historicalFiles;
+          const newFiles = [...currentFiles, metadata].slice(-5);
+          unifiedStorage.setHistoricalFiles(newFiles);
+        }).then((result) => {
+          initializeFromLoadResult(result);
+        }).catch((error) => {
+          console.error(error);
+          alert('ファイルの読み込みに失敗しました。');
+        });
+      } else {
+        loadFromFile(file).then((result) => {
+          initializeFromLoadResult(result);
+        }).catch((error) => {
+          console.error(error);
+          alert('ファイルの読み込みに失敗しました。');
+        });
+      }
     }
-  }, [loadFromFile, initializeFromLoadResult]);
+  }, [loadFromFile, loadFromFileWithMetadata, initializeFromLoadResult, globalMode, unifiedStorage]);
 
   const handleMainAreaDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -689,18 +723,111 @@ const App: React.FC = () => {
 
   // グローバルモード切り替え時の処理
   const handleGlobalModeChange = useCallback((newMode: GlobalMode) => {
+    // LocalStorageの値を直接確認
+    const localStorageValue = localStorage.getItem('unified_historical_files');
+    console.log('[App] LocalStorage直接確認:', localStorageValue);
+
+    console.log('[App] グローバルモード切り替え:', {
+      from: globalMode,
+      to: newMode,
+      historicalFilesCount: unifiedStorage.historicalFiles.length,
+      dataSourcesCount: dataSources.length,
+      hasDetailedData: Object.keys(data).length > 0
+    });
+
     // 詳細分析→過去比較に切り替えた場合
     if (newMode === 'historical' && globalMode === 'detailed') {
+      console.log('[App] 詳細→過去比較モード切り替え検出');
+      // unified_historical_filesにメタデータがあり、過去比較モードの実データがない場合
+      if (unifiedStorage.historicalFiles.length > 0 && dataSources.length === 0) {
+        console.log('[App] 条件1クリア: メタデータあり、過去比較データなし');
+        // 詳細分析モードの実データを過去比較モードに引き継ぎ
+        if (Object.keys(data).length > 0) {
+          console.log('[App] 条件2クリア: 詳細分析データあり、引き継ぎ開始');
+          // 配列の最後の要素を使用
+          const lastMeta = unifiedStorage.historicalFiles[unifiedStorage.historicalFiles.length - 1];
+          const dataSource: DataSource = {
+            id: lastMeta.id,
+            name: lastMeta.name,
+            fileName: lastMeta.fileName,
+            uploadedAt: new Date(lastMeta.uploadedAt),
+            data: data,
+            brandImageData: brandImageData,
+            isActive: lastMeta.isActive
+          };
+          addDirectDataSource(dataSource);
+          console.log('[App] 詳細分析モードのデータを過去比較モードに引き継ぎました');
+        } else {
+          console.log('[App] 詳細分析データが空のため引き継ぎスキップ');
+        }
+      } else {
+        console.log('[App] 引き継ぎ条件不足:', {
+          hasMetadata: unifiedStorage.historicalFiles.length > 0,
+          dataSourcesEmpty: dataSources.length === 0
+        });
+      }
       // 過去比較モードのデフォルト分析モードに切り替え
       setAnalysisMode('historical_funnel1_segment_brand');
     } else if (newMode === 'detailed' && globalMode === 'historical') {
+      console.log('[App] 過去比較→詳細分析モード切り替え検出');
       // 過去比較→詳細分析に切り替えた場合
+      // LocalStorageから直接メタデータを読み取る（Reactの状態更新タイミングの問題を回避）
+      const localStorageValue = localStorage.getItem('unified_historical_files');
+      let historicalFiles: any[] = [];
+
+      if (localStorageValue) {
+        try {
+          historicalFiles = JSON.parse(localStorageValue);
+          console.log('[App] LocalStorageから読み取ったメタデータ:', historicalFiles);
+        } catch (error) {
+          console.error('[App] メタデータのパースエラー:', error);
+        }
+      }
+
+      if (historicalFiles.length > 0) {
+        const lastMeta = historicalFiles[historicalFiles.length - 1];
+        console.log('[App] 最後のメタデータ:', lastMeta);
+
+        // 現在の詳細分析モードのファイル名と比較
+        const needsReload = currentFileName !== lastMeta.fileName;
+        console.log('[App] ファイル名比較:', { current: currentFileName, last: lastMeta.fileName, needsReload });
+
+        if (needsReload) {
+          // ファイル名が異なる場合、過去比較モードから対応するデータソースを探す
+          const targetDataSource = dataSources.find(ds => ds.fileName === lastMeta.fileName);
+
+          if (targetDataSource && targetDataSource.data && Object.keys(targetDataSource.data).length > 0) {
+            console.log('[App] 対応するデータソース発見、読み直し開始');
+            setDataDirect(
+              targetDataSource.data,
+              targetDataSource.brandImageData || {},
+              targetDataSource.fileName
+            );
+
+            // 初期化ロジックを実行
+            const result = {
+              sheetData: targetDataSource.data,
+              brandImageData: targetDataSource.brandImageData || {}
+            };
+            initializeFromLoadResult(result);
+
+            console.log('[App] ファイルを読み直しました:', lastMeta.fileName);
+          } else {
+            console.warn('[App] 対応するデータソースが見つかりません:', lastMeta.fileName);
+          }
+        } else {
+          console.log('[App] ファイル名が一致、読み直し不要');
+        }
+      } else {
+        console.log('[App] メタデータなし、引き継ぎスキップ');
+      }
       // 詳細分析モードのデフォルト分析モードに切り替え
       setAnalysisMode('funnel_segment_brands');
     }
 
     setGlobalMode(newMode);
-  }, [globalMode, setGlobalMode, setAnalysisMode]);
+  }, [globalMode, setGlobalMode, setAnalysisMode, data, brandImageData, dataSources,
+    unifiedStorage.historicalFiles, addDirectDataSource, setDataDirect, initializeFromLoadResult]);
 
   return (
     <div className="flex h-screen bg-white text-gray-800 font-sans overflow-hidden">
