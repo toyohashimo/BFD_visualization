@@ -106,14 +106,14 @@ export class ExcelParser {
 
     const brands: BrandData = {};
     const brandImages: Record<string, Record<string, number>> = {};
-    
+
     // ブランドイメージ項目を抽出（パターンマッチング版）
     const brandImageItems = this.extractBrandImageItems(
       categoryRow,
       itemRow,
       headerRow
     );
-    
+
     if (brandImageItems.length === 0) {
       console.warn('[ExcelParser] No brand image items found in sheet:', sheetName);
     } else {
@@ -206,30 +206,34 @@ export class ExcelParser {
     // ファネルメトリクス
     Object.entries(mapping.funnel).forEach(([key, colIdx]) => {
       if (colIdx !== undefined) {
-        metrics[key as keyof AllMetrics] = this.parseValue(row[colIdx]);
+        (metrics as any)[key] = this.parseValue(row[colIdx]);
       }
     });
 
     // タイムラインメトリクス
     Object.entries(mapping.timeline).forEach(([key, colIdx]) => {
       if (colIdx !== undefined) {
-        metrics[key as keyof AllMetrics] = this.parseValue(row[colIdx]);
+        (metrics as any)[key] = this.parseValue(row[colIdx]);
       }
     });
 
     // ブランドパワーメトリクス
     Object.entries(mapping.brandPower).forEach(([key, colIdx]) => {
       if (colIdx !== undefined) {
-        metrics[key as keyof AllMetrics] = this.parseValue(row[colIdx]);
+        (metrics as any)[key] = this.parseValue(row[colIdx]);
       }
     });
 
     // 将来性パワーメトリクス
     Object.entries(mapping.futurePower).forEach(([key, colIdx]) => {
       if (colIdx !== undefined) {
-        metrics[key as keyof AllMetrics] = this.parseValue(row[colIdx]);
+        (metrics as any)[key] = this.parseValue(row[colIdx]);
       }
     });
+
+    // N数と認知者数を取得（固定列から）
+    metrics.n_count = this.parseValue(row[EXCEL_STRUCTURE.N_COUNT_COLUMN]);
+    metrics.awareness_count = this.parseValue(row[EXCEL_STRUCTURE.AWARENESS_COUNT_COLUMN]);
 
     return metrics;
   }
@@ -259,7 +263,7 @@ export class ExcelParser {
       if (!itemName || typeof itemName !== 'string') return;
 
       const itemStr = itemName.trim();
-      
+
       // 「ブランドイメージ」を含むかチェック
       const isBrandImage = BRAND_IMAGE.PATTERNS.ITEM_KEYWORDS.some(keyword =>
         itemStr.includes(keyword)

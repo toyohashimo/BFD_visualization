@@ -216,6 +216,10 @@ const App: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
+  // N数・認知者数表示トグル
+  const [showNCount, setShowNCount] = useState(false);
+  const [showAwarenessCount, setShowAwarenessCount] = useState(false);
+
   // refs
   const chartRef = useRef<HTMLDivElement>(null);
   const combinedRef = useRef<HTMLDivElement>(null);
@@ -442,7 +446,34 @@ const App: React.FC = () => {
     const config = currentModeConfigs[analysisMode];
     if (!config || !config.axes) return null;
 
-    const labelGetters = createLabelGetters(getBrandName);
+    // ラベル取得関数の生成（N数・認知者数表示のロジックを追加）
+    const baseLabelGetters = createLabelGetters(getBrandName);
+    const labelGetters = {
+      ...baseLabelGetters,
+      brands: (key: string) => {
+        let label = baseLabelGetters.brands(key);
+        // 詳細分析モードの場合、現在のシート（セグメント）からデータを取得して表示
+        if (globalMode === 'detailed' && data[currentSheet] && data[currentSheet][key]) {
+          const metrics = data[currentSheet][key];
+          // ブランド項目には認知者数のみ表示
+          if (showAwarenessCount && metrics.awareness_count) label += ` (n=${metrics.awareness_count})`;
+        }
+        return label;
+      },
+      segments: (key: string) => {
+        let label = baseLabelGetters.segments(key);
+        // 詳細分析モードの場合、そのセグメントの最初のブランドからN数を取得（N数はセグメント内で固定）
+        if (globalMode === 'detailed' && data[key]) {
+          const firstBrand = Object.keys(data[key])[0];
+          if (firstBrand) {
+            const metrics = data[key][firstBrand];
+            // セグメント項目にはN数のみ表示
+            if (showNCount && metrics.n_count) label += ` (N=${metrics.n_count})`;
+          }
+        }
+        return label;
+      }
+    };
 
     // 過去比較モードの場合
     if (isHistoricalMode()) {
@@ -542,7 +573,9 @@ const App: React.FC = () => {
     isHistoricalMode,
     getActiveDataSources,
     selectedBrands,
-    selectedSegments
+    selectedSegments,
+    showNCount,
+    showAwarenessCount
   ]);
 
   // ファイルアップロード処理
@@ -918,6 +951,10 @@ const App: React.FC = () => {
             handleExportCSV={exportCSV}
             yAxisMax={chartConfig.yAxisMax}
             setYAxisMax={chartConfig.setYAxisMax}
+            showNCount={showNCount}
+            setShowNCount={setShowNCount}
+            showAwarenessCount={showAwarenessCount}
+            setShowAwarenessCount={setShowAwarenessCount}
           />
         )}
       </div>
@@ -998,6 +1035,10 @@ const App: React.FC = () => {
           handleExportCSV={exportCSV}
           yAxisMax={chartConfig.yAxisMax}
           setYAxisMax={chartConfig.setYAxisMax}
+          showNCount={showNCount}
+          setShowNCount={setShowNCount}
+          showAwarenessCount={showAwarenessCount}
+          setShowAwarenessCount={setShowAwarenessCount}
         />
       </div>
 
@@ -1124,6 +1165,8 @@ const App: React.FC = () => {
               yAxisMax={chartConfig.yAxisMax}
               isAnonymized={chartConfig.isAnonymized}
               isDebugMode={settings.isDebugMode}
+              showNCount={showNCount}
+              showAwarenessCount={showAwarenessCount}
             />
           )}
         </div>

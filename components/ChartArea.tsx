@@ -49,6 +49,8 @@ interface ChartAreaProps {
     yAxisMax: number | '';
     isAnonymized: boolean; // DEMOモード判定用
     isDebugMode?: boolean; // デバッグモード判定用（APIキー設定済み）
+    showNCount: boolean;
+    showAwarenessCount: boolean;
 }
 
 export const ChartArea: React.FC<ChartAreaProps> = ({
@@ -74,6 +76,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
     yAxisMax,
     isAnonymized,
     isDebugMode = false, // デフォルトはfalse
+    showNCount,
+    showAwarenessCount,
 }) => {
     // データがない場合は早期リターン
     if (!chartData || chartData.length === 0) {
@@ -217,18 +221,40 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         return index;
     }, [analysisMode, brandColorIndices, segmentColorIndices, currentModeConfigs]);
 
+    // Helper functions for consistent label generation
+    const getBrandLabel = useCallback((brand: string) => {
+        let label = getBrandName(brand);
+        if (globalMode === 'detailed' && data[currentSheet] && data[currentSheet][brand]) {
+            const metrics = data[currentSheet][brand];
+            if (showAwarenessCount && metrics.awareness_count) label += ` (n=${metrics.awareness_count})`;
+        }
+        return label;
+    }, [globalMode, data, currentSheet, showAwarenessCount, getBrandName]);
+
+    const getSegmentLabel = useCallback((segment: string, index?: number) => {
+        let label = formatSegmentName(segment, isAnonymized, index);
+        if (globalMode === 'detailed' && data[segment]) {
+            const firstBrand = Object.keys(data[segment])[0];
+            if (firstBrand) {
+                const metrics = data[segment][firstBrand];
+                if (showNCount && metrics.n_count) label += ` (N=${metrics.n_count})`;
+            }
+        }
+        return label;
+    }, [globalMode, data, showNCount, isAnonymized]);
+
     const getSeriesDisplayName = useCallback((item: string, index?: number): string => {
         const config = currentModeConfigs[analysisMode];
         if (!config) return item;
         const seriesAxis = config.dataTransform.series;
 
         if (seriesAxis === 'brands') {
-            return getBrandName(item);
+            return getBrandLabel(item);
         } else if (seriesAxis === 'segments') {
-            return formatSegmentName(item, isAnonymized, index);
+            return getSegmentLabel(item, index);
         }
         return item;
-    }, [analysisMode, getBrandName, currentModeConfigs, isAnonymized]);
+    }, [analysisMode, currentModeConfigs, getBrandLabel, getSegmentLabel]);
 
     // Manual Legend Payload
     const legendPayload = useMemo(() => {
@@ -286,7 +312,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         if (axes.segments.role === 'FILTER') {
             filters.push({
                 label: axes.segments.label,
-                value: formatSegmentName(currentSheet, isAnonymized)
+                value: getSegmentLabel(currentSheet)
             });
         }
 
@@ -294,7 +320,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         if (axes.brands.role === 'FILTER') {
             filters.push({
                 label: axes.brands.label,
-                value: getBrandName(targetBrand)
+                value: getBrandLabel(targetBrand)
             });
         }
 
@@ -309,7 +335,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
         }
 
         return filters;
-    }, [analysisMode, currentSheet, targetBrand, selectedItem, getBrandName, currentModeConfigs]);
+    }, [analysisMode, currentSheet, targetBrand, selectedItem, getBrandName, currentModeConfigs, getBrandLabel, getSegmentLabel]);
 
     // 後方互換性のため、最初のフィルタをchartLabel/chartValueとして保持
     const { chartLabel, chartValue } = useMemo(() => {
@@ -653,7 +679,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                                 <th className="py-4 px-6 font-medium text-gray-500">セグメント</th>
                                                 {selectedBrands.map(brand => (
                                                     <th key={brand} className="py-4 px-6 font-medium text-gray-500 text-center">
-                                                        {getBrandName(brand)}
+                                                        {getBrandLabel(brand)}
                                                     </th>
                                                 ))}
                                             </>
@@ -760,7 +786,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                         return selectedSegments.map((seg, segIndex) => {
                                             const colorIndex = segmentColorIndices[seg] ?? segIndex;
                                             const color = activePalette[colorIndex % activePalette.length].hex;
-                                            const displayName = formatSegmentName(seg, isAnonymized, segIndex);
+                                            const displayName = getSegmentLabel(seg, segIndex);
 
                                             return (
                                                 <tr key={seg} className="hover:bg-gray-50/50 transition-colors">
@@ -783,7 +809,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                 } else if (xAxis === 'brands') {
                                     // Mode 3, 6, 9: Segment (rows) × Brand (columns) cross table
                                     return selectedSegments.map((seg, segIndex) => {
-                                        const displaySegName = formatSegmentName(seg, isAnonymized, segIndex);
+                                        const displaySegName = getSegmentLabel(seg, segIndex);
                                         const colorIndex = segmentColorIndices[seg] ?? segIndex;
                                         const color = activePalette[colorIndex % activePalette.length].hex;
                                         const isBrandImage = config.axes.items?.itemSet === 'brandImage';
@@ -799,7 +825,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
 
                                                     if (isBrandImage) {
                                                         // Mode 9: Use chartData which is already transformed
-                                                        const brandName = getBrandName(brand);
+                                                        const brandName = getBrandLabel(brand);
                                                         const dataPoint = chartData.find(d => d.name === brandName);
                                                         // Series name is the segment name (formatted)
                                                         value = dataPoint ? dataPoint[displaySegName] : undefined;
@@ -831,7 +857,7 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                         const dataRow = isBrand ? data[currentSheet][item] : data[item]?.[targetBrand];
                                         const colorIndex = isBrand ? (brandColorIndices[item] ?? index) : (segmentColorIndices[item] ?? index);
                                         const color = activePalette[colorIndex % activePalette.length].hex;
-                                        const displayName = isBrand ? getBrandName(item) : item.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim();
+                                        const displayName = isBrand ? getBrandLabel(item) : getSegmentLabel(item, index);
 
                                         if (!dataRow) return null;
 

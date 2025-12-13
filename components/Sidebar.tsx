@@ -58,6 +58,11 @@ interface SidebarProps {
     currentFileName: string; // 詳細分析モード用のファイル名
     isAnonymized: boolean;
     toggleAnonymization: () => void;
+    // N数・認知者数表示トグル
+    showNCount: boolean;
+    setShowNCount: (show: boolean) => void;
+    showAwarenessCount: boolean;
+    setShowAwarenessCount: (show: boolean) => void;
     isUploading: boolean;
     onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onFileDrop: (file: File) => void;
@@ -126,6 +131,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentFileName,
     isAnonymized,
     toggleAnonymization,
+    showNCount,
+    setShowNCount,
+    showAwarenessCount,
+    setShowAwarenessCount,
     isUploading,
     brandImageData,
     onFileSelect,
@@ -546,6 +555,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         >
                             レーダー
                         </button>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    {/* N数表示トグル */}
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer select-none flex items-center gap-1">
+                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${showNCount ? 'bg-indigo-600' : 'bg-gray-300'}`} onClick={() => setShowNCount(!showNCount)}>
+                                <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${showNCount ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                            <span>N数表示</span>
+                        </label>
+                    </div>
+
+                    {/* 認知者数表示トグル */}
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer select-none flex items-center gap-1">
+                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${showAwarenessCount ? 'bg-indigo-600' : 'bg-gray-300'}`} onClick={() => setShowAwarenessCount(!showAwarenessCount)}>
+                                <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${showAwarenessCount ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                            <span>認知者数表示</span>
+                        </label>
                     </div>
                 </div>
 

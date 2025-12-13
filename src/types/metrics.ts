@@ -67,6 +67,8 @@ export interface ArchetypeMetrics {
  */
 export type AllMetrics = FunnelMetrics & TimelineMetrics & BrandPowerMetrics & FuturePowerMetrics & {
   archetypeMetrics?: ArchetypeMetrics;
+  n_count?: number;         // N数 (B列)
+  awareness_count?: number; // 認知者数 (F列)
 };
 
 /**

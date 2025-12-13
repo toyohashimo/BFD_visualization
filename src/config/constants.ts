@@ -46,6 +46,8 @@ export const EXCEL_STRUCTURE = {
   ITEM_ROW_INDEX: 1,          // 2行目が項目名(0-based: 1)
   DATA_START_INDEX: 3,        // 4行目からデータ(0-based: 3)
   BRAND_NAME_COLUMN: 3,       // D列がブランド名(0-based: 3)
+  N_COUNT_COLUMN: 1,          // B列がN数(0-based: 1)
+  AWARENESS_COUNT_COLUMN: 5,  // F列が認知者数(0-based: 5)
 } as const;
 
 /**
