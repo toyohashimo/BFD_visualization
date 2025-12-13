@@ -218,10 +218,19 @@ export const useModeState = (
         return '';
     }, [displayState.brands, config.axes.brands]);
 
-    // モード制約を考慮したセッター関数
     const setBrands = useCallback((newBrands: string[]) => {
         if (config.axes.brands?.allowMultiple === false) {
-            // SA（単一選択）の場合: brands[0]のみ置き換え、残りは保持
+            // SA（単一選択）の場合の特別処理
+
+            // ファイル初期化の検出: 3つ以上のブランドが渡された場合
+            // → ユーザー選択ではなく、ファイル読み込み後の初期化
+            // → すべてのブランドを保存（モード制約を無視）
+            if (newBrands.length >= 3) {
+                unifiedStorage.setBrands(newBrands);
+                return;
+            }
+
+            // 通常のユーザー選択: brands[0]のみ置き換え、残りは保持
             const currentBrands = brandsRef.current;
             const updatedBrands = [newBrands[0], ...currentBrands.slice(1)].filter(Boolean);
             unifiedStorage.setBrands(updatedBrands);
@@ -233,7 +242,17 @@ export const useModeState = (
 
     const setSegments = useCallback((newSegments: string[]) => {
         if (config.axes.segments?.allowMultiple === false) {
-            // SA（単一選択）の場合: segments[0]のみ置き換え、残りは保持
+            // SA（単一選択）の場合の特別処理
+
+            // ファイル初期化の検出: 3つ以上のセグメントが渡された場合
+            // → ユーザー選択ではなく、ファイル読み込み後の初期化
+            // → すべてのセグメントを保存（モード制約を無視）
+            if (newSegments.length >= 3) {
+                unifiedStorage.setSegments(newSegments);
+                return;
+            }
+
+            // 通常のユーザー選択: segments[0]のみ置き換え、残りは保持
             const currentSegments = segmentsRef.current;
             const updatedSegments = [newSegments[0], ...currentSegments.slice(1)].filter(Boolean);
             unifiedStorage.setSegments(updatedSegments);

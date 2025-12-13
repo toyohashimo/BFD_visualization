@@ -30,6 +30,7 @@ import { GlobalModeTab } from './components/GlobalModeTab';
 import { DataSourceManager } from './components/DataSourceManager';
 import { SettingsModal } from './components/SettingsModal';
 import { transformDataForChart, transformDataForHistoricalChart, transformDataForHistoricalBrandImage, transformDataForHistoricalBrandsComparison, transformDataForHistoricalBrandImageBrandsComparison } from './utils/dataTransforms';
+import { getFilterValue, getSeriesValues, getXAxisValues, createLabelGetters } from './src/utils/axisHelpers';
 
 // 新しいフックをインポート
 import { useDataManagement } from './src/hooks/useDataManagement';
@@ -44,6 +45,7 @@ import { useGlobalMode } from './src/hooks/useGlobalMode';
 import { useExcelParser } from './src/hooks/useExcelParser';
 import { useAISettings } from './src/hooks/useAISettings';
 import { useUnifiedStorage } from './src/hooks/useUnifiedStorage';
+import { useFileLoadInit } from './src/hooks/useFileLoadInit';
 
 
 /**
@@ -135,6 +137,9 @@ const App: React.FC = () => {
     removeSegment: handleRemoveSegment,
     clearSegments: handleClearAllSegments,
   } = useAnalysisState();
+
+  // ファイルロード初期化（重複ロジック削減）
+  const { initializeFromLoadResult } = useFileLoadInit(setSelectedSegments, setSelectedBrands);
 
 
 
@@ -419,54 +424,7 @@ const App: React.FC = () => {
 
 
 
-  // Helper functions
-  const getFilterValue = useCallback((axisType: AxisType): string => {
-    if (!analysisMode) return '';
-    const config = currentModeConfigs[analysisMode];
-    if (!config || !config.axes || !config.axes[axisType]) return '';
-    const role = config.axes[axisType].role;
 
-    if (role === 'FILTER') {
-      switch (axisType) {
-        case 'segments': return currentSheet;
-        case 'brands': return targetBrand;
-        case 'items': return selectedItem;
-      }
-    }
-    return '';
-  }, [analysisMode, currentSheet, targetBrand, selectedItem, currentModeConfigs]);
-
-  const getSeriesValues = useCallback((axisType: AxisType): string[] => {
-    if (!analysisMode) return [];
-    const config = currentModeConfigs[analysisMode];
-    if (!config || !config.axes || !config.axes[axisType]) return [];
-    const role = config.axes[axisType].role;
-
-    if (role === 'SERIES') {
-      switch (axisType) {
-        case 'brands': return selectedBrands;
-        case 'segments': return selectedSegments;
-        case 'items': return [];
-      }
-    }
-    return [];
-  }, [analysisMode, selectedBrands, selectedSegments, currentModeConfigs]);
-
-  const getXAxisValues = useCallback((axisType: AxisType): string[] => {
-    if (!analysisMode) return [];
-    const config = currentModeConfigs[analysisMode];
-    if (!config || !config.axes || !config.axes[axisType]) return [];
-    const role = config.axes[axisType].role;
-
-    if (role === 'X_AXIS') {
-      switch (axisType) {
-        case 'brands': return selectedBrands;
-        case 'segments': return selectedSegments;
-        case 'items': return [];
-      }
-    }
-    return [];
-  }, [analysisMode, selectedBrands, selectedSegments, currentModeConfigs]);
 
   // チャートデータ生成
   const chartData = useMemo(() => {
@@ -476,18 +434,7 @@ const App: React.FC = () => {
     const config = currentModeConfigs[analysisMode];
     if (!config || !config.axes) return null;
 
-    const labelGetters: Record<AxisType, (key: string) => string> = {
-      items: (key: string) => {
-        if (key in FUNNEL_LABELS) return FUNNEL_LABELS[key as keyof typeof FUNNEL_LABELS];
-        if (key in TIMELINE_LABELS) return TIMELINE_LABELS[key as keyof typeof TIMELINE_LABELS];
-        if (key in BRAND_POWER_LABELS) return BRAND_POWER_LABELS[key as keyof typeof BRAND_POWER_LABELS];
-        if (key in FUTURE_POWER_LABELS) return FUTURE_POWER_LABELS[key as keyof typeof FUTURE_POWER_LABELS];
-        if (key in ARCHETYPE_LABELS) return ARCHETYPE_LABELS[key as keyof typeof ARCHETYPE_LABELS];
-        return key;
-      },
-      segments: (key: string) => key.replace(/[（(]BFDシート[_＿]?[値]?[）)]?.*?St\d+/g, '').trim(),
-      brands: (key: string) => getBrandName(key)
-    };
+    const labelGetters = createLabelGetters(getBrandName);
 
     // 過去比較モードの場合
     if (isHistoricalMode()) {
@@ -556,15 +503,21 @@ const App: React.FC = () => {
 
     // 詳細分析モードの場合（既存）
     const filterValues: Record<AxisType, string> = {
-      items: getFilterValue('items'),
-      segments: getFilterValue('segments'),
-      brands: getFilterValue('brands')
+      items: getFilterValue(analysisMode, config, currentSheet, targetBrand, selectedItem),
+      segments: getFilterValue(analysisMode, config, currentSheet, targetBrand, selectedItem),
+      brands: getFilterValue(analysisMode, config, currentSheet, targetBrand, selectedItem)
     };
 
     const seriesValues: Record<AxisType, string[]> = {
-      items: getSeriesValues('items').length > 0 ? getSeriesValues('items') : getXAxisValues('items'),
-      segments: getSeriesValues('segments').length > 0 ? getSeriesValues('segments') : getXAxisValues('segments'),
-      brands: getSeriesValues('brands').length > 0 ? getSeriesValues('brands') : getXAxisValues('brands')
+      items: getSeriesValues(analysisMode, config, selectedBrands, selectedSegments).length > 0
+        ? getSeriesValues(analysisMode, config, selectedBrands, selectedSegments)
+        : getXAxisValues(analysisMode, config, selectedBrands, selectedSegments),
+      segments: getSeriesValues(analysisMode, config, selectedBrands, selectedSegments).length > 0
+        ? getSeriesValues(analysisMode, config, selectedBrands, selectedSegments)
+        : getXAxisValues(analysisMode, config, selectedBrands, selectedSegments),
+      brands: getSeriesValues(analysisMode, config, selectedBrands, selectedSegments).length > 0
+        ? getSeriesValues(analysisMode, config, selectedBrands, selectedSegments)
+        : getXAxisValues(analysisMode, config, selectedBrands, selectedSegments)
     };
 
     return transformDataForChart(data, config, filterValues, seriesValues, labelGetters, brandImageData);
@@ -590,29 +543,7 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       loadFromFile(file).then((result) => {
-        if (result) {
-          // 全セグメント（シート）を取得し、最初の3つを選択
-          const allSegments = Object.keys(result.sheetData);
-          const top3Segments = allSegments.slice(0, 3);
-
-          if (top3Segments.length > 0) {
-            // segments[0]がデータソース（シート）として機能
-            const firstSheet = top3Segments[0];
-
-            // そのシートから最初の3ブランドを取得
-            const allBrands = Object.keys(result.sheetData[firstSheet]);
-            const top3Brands = allBrands.slice(0, 3);
-
-            // unifiedStorageを直接使用（モード制約をバイパス）
-            unifiedStorage.setSegments(top3Segments);
-            unifiedStorage.setBrands(top3Brands);
-
-            console.log('[App] File loaded - initialized with:', {
-              segments: top3Segments, // segments[0] is data source
-              brands: top3Brands
-            });
-          }
-        }
+        initializeFromLoadResult(result);
       }).catch((error) => {
         console.error(error);
         alert('ファイルの読み込みに失敗しました。');
@@ -627,35 +558,13 @@ const App: React.FC = () => {
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       loadFromFile(e.dataTransfer.files[0]).then((result) => {
-        if (result) {
-          // 全セグメント（シート）を取得し、最初の3つを選択
-          const allSegments = Object.keys(result.sheetData);
-          const top3Segments = allSegments.slice(0, 3);
-
-          if (top3Segments.length > 0) {
-            // segments[0]がデータソース（シート）として機能
-            const firstSheet = top3Segments[0];
-
-            // そのシートから最初の3ブランドを取得
-            const allBrands = Object.keys(result.sheetData[firstSheet]);
-            const top3Brands = allBrands.slice(0, 3);
-
-            // unifiedStorageを直接使用（モード制約をバイパス）
-            unifiedStorage.setSegments(top3Segments);
-            unifiedStorage.setBrands(top3Brands);
-
-            console.log('[App] File loaded - initialized with:', {
-              segments: top3Segments, // segments[0] is data source
-              brands: top3Brands
-            });
-          }
-        }
+        initializeFromLoadResult(result);
       }).catch((error) => {
         console.error(error);
         alert('ファイルの読み込みに失敗しました。');
       });
     }
-  }, [loadFromFile, unifiedStorage]);
+  }, [loadFromFile, initializeFromLoadResult]);
 
   const handleMainAreaDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -832,29 +741,7 @@ const App: React.FC = () => {
             onFileSelect={handleFileInput}
             onFileDrop={(file) => {
               loadFromFile(file).then((result) => {
-                if (result) {
-                  // 全セグメント（シート）を取得し、最初の3つを選択
-                  const allSegments = Object.keys(result.sheetData);
-                  const top3Segments = allSegments.slice(0, 3);
-
-                  if (top3Segments.length > 0) {
-                    // segments[0]がデータソース（シート）として機能
-                    const firstSheet = top3Segments[0];
-
-                    // そのシートから最初の3ブランドを取得
-                    const allBrands = Object.keys(result.sheetData[firstSheet]);
-                    const top3Brands = allBrands.slice(0, 3);
-
-                    // unifiedStorageを直接使用（モード制約をバイパス）
-                    unifiedStorage.setSegments(top3Segments);
-                    unifiedStorage.setBrands(top3Brands);
-
-                    console.log('[App] File loaded - initialized with:', {
-                      segments: top3Segments, // segments[0] is data source
-                      brands: top3Brands
-                    });
-                  }
-                }
+                initializeFromLoadResult(result);
               });
             }}
             onClearData={resetData}
