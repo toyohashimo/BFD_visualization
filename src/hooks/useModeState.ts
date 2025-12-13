@@ -75,6 +75,16 @@ const getDisplayState = (
                 display.item = 'BP1';
             } else if (currentItemSet === 'futurePower' && !isFuturePowerItem) {
                 display.item = 'FP1';
+            } else if (currentItemSet === 'archetype') {
+                const isArchetypeItem = [
+                    'creator', 'ruler', 'sage', 'explorer',
+                    'innocent', 'outlaw', 'magician', 'hero',
+                    'lover', 'jester', 'regular', 'caregiver'
+                ].includes(state.item);
+
+                if (!isArchetypeItem) {
+                    display.item = 'creator';
+                }
             }
         }
     }

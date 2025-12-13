@@ -46,6 +46,9 @@ export const useFileLoadInit = (
             unifiedStorage.setSegments(top3Segments);
             unifiedStorage.setBrands(top3Brands);
 
+            // Mode 18対策: unified_itemを初期化
+            unifiedStorage.setItem('creator');
+
             // Step 2: React settersを呼び出し（再レンダリングをトリガー）
             // useModeStateは3つ以上の場合はすべて保存するようになった
             setSelectedSegments(top3Segments);
@@ -53,7 +56,8 @@ export const useFileLoadInit = (
 
             console.log('[useFileLoadInit] File loaded - initialized with:', {
                 segments: top3Segments,
-                brands: top3Brands
+                brands: top3Brands,
+                item: 'creator'
             });
         }
     }, [unifiedStorage, setSelectedSegments, setSelectedBrands]);
