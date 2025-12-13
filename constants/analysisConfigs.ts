@@ -447,6 +447,134 @@ export const ANALYSIS_MODE_CONFIGS: Record<string, AnalysisModeConfig> = {
             filter: 'brands'
         },
         defaultChartType: 'radar'
+    },
+
+    'brand_image_item_segments_brands': {
+        id: 'brand_image_item_segments_brands',
+        name: 'ブランドイメージ分析（ブランドイメージ: X=ブランド×セグメント）',
+        description: '単一ブランドイメージ項目における複数ブランド・セグメントの比較',
+        axes: {
+            items: {
+                role: 'FILTER',
+                label: '項目',
+                allowMultiple: false,
+                itemSet: 'brandImage',
+                fixedItems: []  // ブランドイメージ項目は動的に取得（データソースの2行目が「ブランドイメージ」の項目）
+            },
+            segments: {
+                role: 'SERIES',
+                label: 'セグメント',
+                allowMultiple: true
+            },
+            brands: {
+                role: 'X_AXIS',
+                label: 'ブランド',
+                allowMultiple: true
+            }
+        },
+        dataTransform: {
+            xAxis: 'brands',
+            series: 'segments',
+            filter: 'items'
+        },
+        defaultChartType: 'bar'
+    },
+
+    'brand_power_item_segments_brands': {
+        id: 'brand_power_item_segments_brands',
+        name: 'ブランドパワー分析①（現在パワー: X=ブランド×セグメント）',
+        description: '単一現在パワー項目における複数ブランド・セグメントの比較',
+        axes: {
+            items: {
+                role: 'FILTER',
+                label: '項目',
+                allowMultiple: false,
+                itemSet: 'brandPower',
+                fixedItems: ['BP1', 'BP2', 'BP3', 'BP4']
+            },
+            segments: {
+                role: 'SERIES',
+                label: 'セグメント',
+                allowMultiple: true
+            },
+            brands: {
+                role: 'X_AXIS',
+                label: 'ブランド',
+                allowMultiple: true
+            }
+        },
+        dataTransform: {
+            xAxis: 'brands',
+            series: 'segments',
+            filter: 'items'
+        },
+        defaultChartType: 'bar'
+    },
+
+    'future_power_item_segments_brands': {
+        id: 'future_power_item_segments_brands',
+        name: 'ブランドパワー分析②（将来性パワー: X=ブランド×セグメント）',
+        description: '単一将来性パワー項目における複数ブランド・セグメントの比較',
+        axes: {
+            items: {
+                role: 'FILTER',
+                label: '項目',
+                allowMultiple: false,
+                itemSet: 'futurePower',
+                fixedItems: ['FP1', 'FP2', 'FP3', 'FP4', 'FP5', 'FP6']
+            },
+            segments: {
+                role: 'SERIES',
+                label: 'セグメント',
+                allowMultiple: true
+            },
+            brands: {
+                role: 'X_AXIS',
+                label: 'ブランド',
+                allowMultiple: true
+            }
+        },
+        dataTransform: {
+            xAxis: 'brands',
+            series: 'segments',
+            filter: 'items'
+        },
+        defaultChartType: 'bar'
+    },
+
+    'archetype_item_segments_brands': {
+        id: 'archetype_item_segments_brands',
+        name: 'アーキタイプ分析（アーキタイプ: X=ブランド×セグメント）',
+        description: '単一アーキタイプ項目における複数ブランド・セグメントの比較',
+        axes: {
+            items: {
+                role: 'FILTER',
+                label: '項目',
+                allowMultiple: false,
+                itemSet: 'archetype',
+                fixedItems: [
+                    'creator', 'ruler', 'sage', 'explorer',
+                    'innocent', 'outlaw', 'magician', 'hero',
+                    'lover', 'jester', 'regular', 'caregiver'
+                ]
+            },
+            segments: {
+                role: 'SERIES',
+                label: 'セグメント',
+                allowMultiple: true
+            },
+            brands: {
+                role: 'X_AXIS',
+                label: 'ブランド',
+                allowMultiple: true
+            }
+        },
+        dataTransform: {
+            xAxis: 'brands',
+            series: 'segments',
+            filter: 'items'
+        },
+        defaultChartType: 'radar'
     }
 };
 
@@ -462,12 +590,16 @@ export const ANALYSIS_MODE_ORDER = [
     'timeline_item_segments_brands',
     'brand_image_segment_brands',
     'brand_image_brand_segments',
+    'brand_image_item_segments_brands',
     'brand_power_segment_brands',
     'brand_power_brand_segments',
+    'brand_power_item_segments_brands',
     'future_power_segment_brands',
     'future_power_brand_segments',
+    'future_power_item_segments_brands',
     'archetype_segment_brands',
-    'archetype_brand_segments'
+    'archetype_brand_segments',
+    'archetype_item_segments_brands'
 ];
 
 /**

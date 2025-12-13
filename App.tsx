@@ -183,75 +183,6 @@ const App: React.FC = () => {
     }
   }, [analysisMode, chartConfig.setChartType, currentModeConfigs]);
 
-  // モード切り替え時のデフォルト選択設定
-  // 注: 統一LocalStorage実装により、このロジックは無効化しました
-  // モード切り替え時は既存の選択状態を保持します
-  /* useEffect(() => {
-    if (!hasValidData || !analysisMode) return;
-
-    const config = currentModeConfigs[analysisMode];
-    if (!config || !config.axes) return;
-
-    // ブランドのデフォルト選択
-    if (config.axes.brands) {
-      const brandsRole = config.axes.brands.role;
-      const allowMulti = config.axes.brands.allowMultiple !== false;
-
-      // 利用可能なブランドリストを取得
-      const availableBrands = Object.keys(data[sheet] || {});
-
-      if (brandsRole === 'FILTER') {
-        // FILTER役割: targetBrandが空ならデフォルト設定
-        if (!targetBrand && availableBrands.length > 0) {
-          setTargetBrand(availableBrands[0]);
-        }
-      } else {
-        // SERIES/X_AXIS役割: selectedBrandsが空ならデフォルト設定
-        if (selectedBrands.length === 0 && availableBrands.length > 0) {
-          if (allowMulti) {
-            // 複数選択可能: 1～3番目のブランド
-            setSelectedBrands(availableBrands.slice(0, Math.min(3, availableBrands.length)));
-          } else {
-            // 単一選択のみ: 1番目のブランド
-            setSelectedBrands([availableBrands[0]]);
-          }
-        }
-      }
-    }
-
-    // セグメントのデフォルト選択
-    if (config.axes.segments) {
-      const segmentsRole = config.axes.segments.role;
-      const allowMulti = config.axes.segments.allowMultiple !== false;
-
-      // 利用可能なセグメントリストを取得
-      const availableSegments = Object.keys(data);
-      const defaultSegments = [
-        availableSegments.find(s => s.includes('全体')) || availableSegments[0],
-        availableSegments.find(s => s.includes('男性')),
-        availableSegments.find(s => s.includes('女性'))
-      ].filter(Boolean) as string[];
-
-      if (segmentsRole === 'FILTER') {
-        // FILTER役割: sheetが空ならデフォルト設定
-        if (!sheet && defaultSegments.length > 0) {
-          setSheet(defaultSegments[0]); // 「全体」を優先
-        }
-      } else {
-        // SERIES/X_AXIS役割: selectedSegmentsが空ならデフォルト設定
-        if (selectedSegments.length === 0 && defaultSegments.length > 0) {
-          if (allowMulti) {
-            // 複数選択可能: 全体、男性、女性
-            setSelectedSegments(defaultSegments);
-          } else {
-            // 単一選択のみ: 全体
-            setSelectedSegments([defaultSegments[0]]);
-          }
-        }
-      }
-    }
-  }, [analysisMode, hasValidData, data, sheet, targetBrand, selectedBrands, selectedSegments,
-    setTargetBrand, setSelectedBrands, setSheet, setSelectedSegments, currentModeConfigs]); */
 
   // 色マッピング
   const { brandColorIndices, segmentColorIndices } = useColorMapping(
@@ -374,6 +305,81 @@ const App: React.FC = () => {
       return Object.keys(data);
     }
   }, [data, dataSources, globalMode]);
+
+  // モード切り替え時のデフォルト選択設定
+  // 統一LocalStorage実装により、基本的には既存の選択状態を保持しますが、
+  // 選択状態が空の場合（ファイル読み込み直後や、無効な値の場合）はデフォルト値を設定します
+  useEffect(() => {
+    if (!hasValidData || !analysisMode) return;
+
+    const config = currentModeConfigs[analysisMode];
+    if (!config || !config.axes) return;
+
+    // ブランドのデフォルト選択
+    if (config.axes.brands) {
+      const brandsRole = config.axes.brands.role;
+      const allowMulti = config.axes.brands.allowMultiple !== false;
+
+      // 利用可能なブランドリストを取得（ハイブリッド対応のavailableBrandsを使用）
+      // availableBrandsは現在のシート（または過去比較モードの選択）に基づいている
+      if (availableBrands.length > 0) {
+        if (brandsRole === 'FILTER') {
+          // FILTER役割: targetBrandが空、または無効ならデフォルト設定
+          if (!targetBrand || !availableBrands.includes(targetBrand)) {
+            setTargetBrand(availableBrands[0]);
+          }
+        } else {
+          // SERIES/X_AXIS役割: selectedBrandsが空、または有効なブランドが1つもないならデフォルト設定
+          // 注意: 統一ストレージの値を持っていても、現在のファイルに含まれていない場合は無効とみなす
+          const hasValidSelection = selectedBrands.length > 0 && selectedBrands.some(b => availableBrands.includes(b));
+
+          if (!hasValidSelection) {
+            console.log('[App] Auto-selecting brands:', availableBrands.slice(0, 3));
+            if (allowMulti) {
+              // 複数選択可能: 1～3番目のブランド
+              setSelectedBrands(availableBrands.slice(0, Math.min(3, availableBrands.length)));
+            } else {
+              // 単一選択のみ: 1番目のブランド
+              setSelectedBrands([availableBrands[0]]);
+            }
+          }
+        }
+      }
+    }
+
+    // セグメントのデフォルト選択
+    if (config.axes.segments) {
+      const segmentsRole = config.axes.segments.role;
+      const allowMulti = config.axes.segments.allowMultiple !== false;
+
+      if (availableSegments.length > 0) {
+        const defaultSegments = [
+          availableSegments.find(s => s.includes('全体')) || availableSegments[0],
+          availableSegments.find(s => s.includes('男性')),
+          availableSegments.find(s => s.includes('女性'))
+        ].filter(Boolean) as string[];
+
+        // SERIES/X_AXIS役割: selectedSegmentsが空、または有効なセグメントが1つもないならデフォルト設定
+        const hasValidSelection = selectedSegments.length > 0 && selectedSegments.some(s => availableSegments.includes(s));
+
+        if (!hasValidSelection) {
+          console.log('[App] Auto-selecting segments:', defaultSegments);
+          if (segmentsRole === 'FILTER') {
+            // FILTERの場合はここでは何もしない（sheetは別管理だが、segments[0]が実質sheet）
+            // 統一ストレージロジックにより setSelectedSegments([seg]) でsheetも更新される
+            setSelectedSegments([defaultSegments[0]]);
+          } else {
+            if (allowMulti) {
+              setSelectedSegments(defaultSegments);
+            } else {
+              setSelectedSegments([defaultSegments[0]]);
+            }
+          }
+        }
+      }
+    }
+  }, [analysisMode, hasValidData, targetBrand, selectedBrands, selectedSegments, availableBrands, availableSegments,
+    setTargetBrand, setSelectedBrands, setSelectedSegments, currentModeConfigs]);
 
   // ブランドマップ (匿名化用)
   const brandMap = useMemo(() => {
@@ -510,16 +516,13 @@ const App: React.FC = () => {
       brands: getFilterValue(analysisMode, config, currentSheet, targetBrand, selectedItem)
     };
 
+    // 修正: 各データタイプの正しいソースを明示的に指定
     const seriesValues: Record<AxisType, string[]> = {
-      items: getSeriesValues(analysisMode, config, selectedBrands, selectedSegments).length > 0
-        ? getSeriesValues(analysisMode, config, selectedBrands, selectedSegments)
-        : getXAxisValues(analysisMode, config, selectedBrands, selectedSegments),
-      segments: getSeriesValues(analysisMode, config, selectedBrands, selectedSegments).length > 0
-        ? getSeriesValues(analysisMode, config, selectedBrands, selectedSegments)
-        : getXAxisValues(analysisMode, config, selectedBrands, selectedSegments),
-      brands: getSeriesValues(analysisMode, config, selectedBrands, selectedSegments).length > 0
-        ? getSeriesValues(analysisMode, config, selectedBrands, selectedSegments)
-        : getXAxisValues(analysisMode, config, selectedBrands, selectedSegments)
+      items: config.axes.items?.fixedItems && config.axes.items.fixedItems.length > 0
+        ? config.axes.items.fixedItems
+        : (selectedItem ? [selectedItem] : []), // 固定項目がない場合は選択された項目（フィルターとして使用される場合など）
+      segments: selectedSegments,
+      brands: selectedBrands
     };
 
     return transformDataForChart(data, config, filterValues, seriesValues, labelGetters, brandImageData);
@@ -537,7 +540,9 @@ const App: React.FC = () => {
     getXAxisValues,
     getBrandName,
     isHistoricalMode,
-    getActiveDataSources
+    getActiveDataSources,
+    selectedBrands,
+    selectedSegments
   ]);
 
   // ファイルアップロード処理
@@ -865,6 +870,7 @@ const App: React.FC = () => {
             isAnonymized={chartConfig.isAnonymized}
             toggleAnonymization={chartConfig.toggleAnonymization}
             isUploading={isDataLoading}
+            brandImageData={brandImageData}
             onFileSelect={handleFileInput}
             onFileDrop={(file) => {
               loadFromFile(file).then((result) => {
@@ -938,6 +944,7 @@ const App: React.FC = () => {
           isAnonymized={chartConfig.isAnonymized}
           toggleAnonymization={chartConfig.toggleAnonymization}
           isUploading={isDataLoading}
+          brandImageData={brandImageData}
           onFileSelect={handleFileInput}
           onFileDrop={(file) => {
             loadFromFile(file).then((result) => {
@@ -1132,4 +1139,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

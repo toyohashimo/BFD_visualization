@@ -781,11 +781,12 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                         });
                                     }
                                 } else if (xAxis === 'brands') {
-                                    // Mode 3, 6: Segment (rows) × Brand (columns) cross table
+                                    // Mode 3, 6, 9: Segment (rows) × Brand (columns) cross table
                                     return selectedSegments.map((seg, segIndex) => {
                                         const displaySegName = formatSegmentName(seg, isAnonymized, segIndex);
                                         const colorIndex = segmentColorIndices[seg] ?? segIndex;
                                         const color = activePalette[colorIndex % activePalette.length].hex;
+                                        const isBrandImage = config.axes.items?.itemSet === 'brandImage';
 
                                         return (
                                             <tr key={seg} className="hover:bg-gray-50/50 transition-colors">
@@ -794,12 +795,25 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                                     {displaySegName}
                                                 </td>
                                                 {selectedBrands.map(brand => {
-                                                    const dataRow = data[seg]?.[brand];
+                                                    let value: number | string | undefined;
+
+                                                    if (isBrandImage) {
+                                                        // Mode 9: Use chartData which is already transformed
+                                                        const brandName = getBrandName(brand);
+                                                        const dataPoint = chartData.find(d => d.name === brandName);
+                                                        // Series name is the segment name (formatted)
+                                                        value = dataPoint ? dataPoint[displaySegName] : undefined;
+                                                    } else {
+                                                        // Mode 3, 6: Use raw data
+                                                        const dataRow = data[seg]?.[brand];
+                                                        value = dataRow && dataRow[selectedItem as keyof AllMetrics] !== undefined
+                                                            ? dataRow[selectedItem as keyof AllMetrics]
+                                                            : undefined;
+                                                    }
+
                                                     return (
                                                         <td key={`${seg}-${brand}`} className="py-4 px-6 text-center text-gray-600">
-                                                            {dataRow && dataRow[selectedItem as keyof AllMetrics] !== undefined
-                                                                ? dataRow[selectedItem as keyof AllMetrics].toFixed(1)
-                                                                : '-'}
+                                                            {value !== undefined ? Number(value).toFixed(1) : '-'}
                                                         </td>
                                                     );
                                                 })}

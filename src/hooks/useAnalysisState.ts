@@ -79,7 +79,7 @@ export const useAnalysisState = () => {
     // モード固有のバリデーションはuseModeStateで実行される
     // 重複排除はuseUnifiedStorageのsetBrands/setSegmentsで自動的に処理される
     setModeInternal(newMode);
-  }, [mode, setModeInternal]);
+  }, [mode, setModeInternal, modeState]);
 
   // 便利なヘルパーメソッド
   // 注: displayStateではなくrawBrands/rawSegmentsを使用（フィルターされていない元の値）

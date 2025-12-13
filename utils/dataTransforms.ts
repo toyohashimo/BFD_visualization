@@ -199,20 +199,37 @@ export const transformDataForChart = (
             let value: number | undefined;
 
             // For brand image mode, get value from brandImageData
-            if (modeConfig.axes.items?.autoSelect && brandImageData) {
-                if (modeConfig.id === 'brand_image_segment_brands') {
-                    // Mode 7: Segment filter, Brand series
-                    const segment = filterValues.segments;
-                    const sheetData = brandImageData[segment];
-                    if (sheetData && sheetData[seriesItem]) {
-                        value = sheetData[seriesItem][xItem];
+            // For brand image mode, get value from brandImageData
+            if (modeConfig.axes.items?.itemSet === 'brandImage' && brandImageData) {
+                if (modeConfig.axes.items?.autoSelect) {
+                    if (modeConfig.id === 'brand_image_segment_brands') {
+                        // Mode 7: Segment filter, Brand series
+                        const segment = filterValues.segments;
+                        const sheetData = brandImageData[segment];
+                        if (sheetData && sheetData[seriesItem]) {
+                            value = sheetData[seriesItem][xItem];
+                        }
+                    } else if (modeConfig.id === 'brand_image_brand_segments') {
+                        // Mode 8: Brand filter, Segment series
+                        const brand = filterValues.brands;
+                        const sheetData = brandImageData[seriesItem]; // seriesItem is segment name
+                        if (sheetData && sheetData[brand]) {
+                            value = sheetData[brand][xItem];
+                        }
                     }
-                } else if (modeConfig.id === 'brand_image_brand_segments') {
-                    // Mode 8: Brand filter, Segment series
-                    const brand = filterValues.brands;
-                    const sheetData = brandImageData[seriesItem]; // seriesItem is segment name
-                    if (sheetData && sheetData[brand]) {
-                        value = sheetData[brand][xItem];
+                } else {
+                    // Manual selection (Mode 9 etc.)
+                    const item = xAxis === 'items' ? xItem : (series === 'items' ? seriesItem : filterValues.items);
+                    const segment = xAxis === 'segments' ? xItem : (series === 'segments' ? seriesItem : filterValues.segments);
+                    const brand = xAxis === 'brands' ? xItem : (series === 'brands' ? seriesItem : filterValues.brands);
+
+                    const sheetData = brandImageData[segment];
+                    if (sheetData) {
+                        // Use fuzzy matching for brand access
+                        const brandData = getBrandDataWithFuzzyMatch(sheetData, brand);
+                        if (brandData) {
+                            value = brandData[item];
+                        }
                     }
                 }
             } else {

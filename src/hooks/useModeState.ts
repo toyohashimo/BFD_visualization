@@ -75,8 +75,6 @@ const getDisplayState = (
                 display.item = 'BP1';
             } else if (currentItemSet === 'futurePower' && !isFuturePowerItem) {
                 display.item = 'FP1';
-            } else if (currentItemSet === 'brandImage') {
-                display.item = '';
             }
         }
     }

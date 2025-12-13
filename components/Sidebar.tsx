@@ -127,6 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     isAnonymized,
     toggleAnonymization,
     isUploading,
+    brandImageData,
     onFileSelect,
     onFileDrop,
     onClearData,
@@ -467,6 +468,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     dataSources={dataSources}
                     selectedSegment={currentSheet}
                     selectedBrand={selectedBrands && selectedBrands[0]}
+                    data={data}
+                    brandImageData={brandImageData}
                 />
 
 

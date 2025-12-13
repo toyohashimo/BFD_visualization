@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { BarChart2, ChevronDown } from 'lucide-react';
-import { AnalysisMode, FunnelMetrics, TimelineMetrics, GlobalMode, getItemKeysForSet, getItemLabelsForSet } from '../types';
-import { 
-    ANALYSIS_MODE_CONFIGS, 
-    HISTORICAL_ANALYSIS_MODE_CONFIGS 
+
+import { AnalysisMode, FunnelMetrics, TimelineMetrics, GlobalMode, getItemKeysForSet, getItemLabelsForSet, SheetData, BrandImageData } from '../src/types';
+import {
+    ANALYSIS_MODE_CONFIGS,
+    HISTORICAL_ANALYSIS_MODE_CONFIGS
 } from '../constants/analysisConfigs';
 
 interface AnalysisItemsSectionProps {
@@ -15,6 +16,8 @@ interface AnalysisItemsSectionProps {
     dataSources?: any[];  // 過去比較モード用
     selectedSegment?: string;  // ブランドイメージ項目取得用
     selectedBrand?: string;  // ブランドイメージ項目取得用（参照ブランド）
+    data?: SheetData;  // 詳細分析モード用（データから項目を取得）
+    brandImageData?: BrandImageData;  // 詳細分析モード用（ブランドイメージデータ）
 }
 
 export const AnalysisItemsSection: React.FC<AnalysisItemsSectionProps> = ({
@@ -25,17 +28,19 @@ export const AnalysisItemsSection: React.FC<AnalysisItemsSectionProps> = ({
     isExcelData,
     dataSources,
     selectedSegment,
-    selectedBrand
+    selectedBrand,
+    data,
+    brandImageData
 }) => {
     // Excelデータがない場合、またはanalysisModeが空の場合は何も表示しない
     if (!isExcelData || !analysisMode) {
         return null;
     }
 
-    const currentModeConfigs = globalMode === 'historical' 
-        ? HISTORICAL_ANALYSIS_MODE_CONFIGS 
+    const currentModeConfigs = globalMode === 'historical'
+        ? HISTORICAL_ANALYSIS_MODE_CONFIGS
         : ANALYSIS_MODE_CONFIGS;
-    
+
     const config = currentModeConfigs[analysisMode];
     if (!config) {
         return null;
@@ -52,16 +57,38 @@ export const AnalysisItemsSection: React.FC<AnalysisItemsSectionProps> = ({
 
     // Get item set and corresponding keys/labels
     const itemSet = itemsConfig.itemSet || 'funnel';
-    
+
     // ブランドイメージ項目の場合は動的に取得
     const { itemKeys, itemLabels } = useMemo(() => {
-        if (itemSet === 'brandImage' && dataSources && selectedSegment && selectedBrand) {
-            // 過去比較モードの場合: 基準データソース（先頭のアクティブ）から項目を取得
-            const activeSources = dataSources.filter((ds: any) => ds.isActive);
-            if (activeSources.length > 0) {
-                const referenceSource = activeSources[0];
-                const brandImageData = referenceSource.brandImageData;
-                if (brandImageData && brandImageData[selectedSegment] && brandImageData[selectedSegment][selectedBrand]) {
+        if (itemSet === 'brandImage') {
+            // 過去比較モードの場合
+            if (globalMode === 'historical' && dataSources && selectedSegment && selectedBrand) {
+                const activeSources = dataSources.filter((ds: any) => ds.isActive);
+                if (activeSources.length > 0) {
+                    const referenceSource = activeSources[0];
+                    const historicalBrandImageData = referenceSource.brandImageData;
+                    if (historicalBrandImageData && historicalBrandImageData[selectedSegment] && historicalBrandImageData[selectedSegment][selectedBrand]) {
+                        const items = Object.keys(historicalBrandImageData[selectedSegment][selectedBrand])
+                            .filter(item => item !== 'あてはまるものはない')
+                            .sort();
+                        const labels = items.reduce((acc: Record<string, string>, item: string) => {
+                            acc[item] = item;
+                            return acc;
+                        }, {});
+
+                        // 自動選択: selectedItemが無効な場合は最初の項目を選択
+                        if (items.length > 0 && !items.includes(selectedItem as string)) {
+                            setTimeout(() => setSelectedItem(items[0] as keyof FunnelMetrics | keyof TimelineMetrics), 0);
+                        }
+
+                        return { itemKeys: items, itemLabels: labels };
+                    }
+                }
+            }
+
+            // 詳細分析モードの場合: brandImageDataから項目を取得
+            if (globalMode === 'detailed' && brandImageData && selectedSegment && selectedBrand) {
+                if (brandImageData[selectedSegment] && brandImageData[selectedSegment][selectedBrand]) {
                     const items = Object.keys(brandImageData[selectedSegment][selectedBrand])
                         .filter(item => item !== 'あてはまるものはない')
                         .sort();
@@ -69,6 +96,12 @@ export const AnalysisItemsSection: React.FC<AnalysisItemsSectionProps> = ({
                         acc[item] = item;
                         return acc;
                     }, {});
+
+                    // 自動選択: selectedItemが無効な場合は最初の項目を選択
+                    if (items.length > 0 && !items.includes(selectedItem as string)) {
+                        setTimeout(() => setSelectedItem(items[0] as keyof FunnelMetrics | keyof TimelineMetrics), 0);
+                    }
+
                     return { itemKeys: items, itemLabels: labels };
                 }
             }
@@ -78,15 +111,15 @@ export const AnalysisItemsSection: React.FC<AnalysisItemsSectionProps> = ({
             itemKeys: getItemKeysForSet(itemSet),
             itemLabels: getItemLabelsForSet(itemSet)
         };
-    }, [itemSet, dataSources, selectedSegment, selectedBrand]);
+    }, [itemSet, globalMode, dataSources, brandImageData, selectedSegment, selectedBrand, selectedItem, setSelectedItem]);
 
     // Display name for fixed or auto-select items
-    const fixedDisplayName = 
+    const fixedDisplayName =
         itemSet === 'timeline' ? 'ファネル分析②' :
-        itemSet === 'brandPower' ? '現在パワー' :
-        itemSet === 'futurePower' ? '将来性パワー' :
-        itemSet === 'archetype' ? 'アーキタイプ' :
-        'ファネル分析①';
+            itemSet === 'brandPower' ? '現在パワー' :
+                itemSet === 'futurePower' ? '将来性パワー' :
+                    itemSet === 'archetype' ? 'アーキタイプ' :
+                        'ファネル分析①';
     const autoSelectDisplayName = `ブランドイメージ項目（TOP${itemsConfig.autoSelectCount || 30}）`;
 
     return (
