@@ -404,7 +404,8 @@ export const ChartArea: React.FC<ChartAreaProps> = ({
                                         }}
                                     />
                                     <PolarRadiusAxis angle={90} domain={yAxisDomain} tick={{ fill: '#9ca3af', fontSize: 10 }} />
-                                    {seriesItems.map((item, index) => {
+                                    {seriesItems.slice().reverse().map((item) => {
+                                        const index = seriesItems.indexOf(item);
                                         const colorIndex = getSeriesColorIndex(item, index);
                                         const colorObj = activePalette[colorIndex % activePalette.length];
                                         const displayName = getSeriesDisplayName(item);
